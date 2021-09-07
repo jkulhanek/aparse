@@ -93,7 +93,7 @@ def _get_parameters(obj, ignore):
                         # Hierarchical arguments
                         params.extend(collect_parameters(p.annotation, set(params), prefix=f'{p.name}.', parent_type=(p.annotation,)))
                     else:
-                        params.append((p.name, p.name, p.annotation, p.dfault, tuple()))
+                        params.append((p.name, p.name, p.annotation, p.default, tuple()))
     return params
 
 
