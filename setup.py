@@ -9,4 +9,5 @@ setup(
     author_email='jonas.kulhanek@live.com',
     license='MIT License',
     long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
     install_requires=[x.rstrip('\n') for x in open('requirements.txt')])
