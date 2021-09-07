@@ -1,6 +1,7 @@
 # aparse
 ![build](https://img.shields.io/github/workflow/status/jkulhanek/aparse/Upload%20Python%20Package)
 ![pypi](https://img.shields.io/pypi/v/aparse.svg)
+
 Python argparse extension with support for typing.
 
 ## Getting started
