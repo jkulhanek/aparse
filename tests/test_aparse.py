@@ -146,3 +146,52 @@ def test_parse_from_str():
 
     assert isinstance(d, CS)
     assert d.a == 'ok-test'
+
+
+def test_argparse_arguments_with_prefix():
+    @add_argparse_arguments()
+    def testfn(args: ArgparseArguments, k: int = 1, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser, prefix='test1')
+    args = argparser.parse_args(['--test1-k', '3'])
+
+    assert hasattr(args, 'test1_k')
+    assert hasattr(args, 'test1_m')
+
+    d = testfn.from_argparse_arguments(args, _prefix='test1')
+    assert isinstance(d, dict)
+    assert d['k'] == 3
+    assert d['m'] == 2.
+
+
+def test_argparse_arguments_with_prefix2():
+    @add_argparse_arguments()
+    def testfn(args: ArgparseArguments, k: int = 1, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser, prefix='test1')
+    argparser = testfn.add_argparse_arguments(argparser, prefix='test2')
+    args = argparser.parse_args(['--test1-k', '3', '--test2-k', '4'])
+
+    assert hasattr(args, 'test1_k')
+    assert hasattr(args, 'test1_m')
+    assert hasattr(args, 'test2_k')
+    assert hasattr(args, 'test2_m')
+
+    d = testfn.bind_argparse_arguments(args, prefix='test1')
+    assert isinstance(d, dict)
+    assert 'test1' in d
+    assert 'test2' not in d
+
+    d = testfn.from_argparse_arguments(args, _prefix='test1')
+    assert isinstance(d, dict)
+    assert d['k'] == 3
+    assert d['m'] == 2.
+
+    d = testfn.from_argparse_arguments(args, _prefix='test2')
+    assert isinstance(d, dict)
+    assert d['k'] == 4
+    assert d['m'] == 2.
