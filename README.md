@@ -1,6 +1,8 @@
-# aparse
-![build](https://img.shields.io/github/workflow/status/jkulhanek/aparse/Upload%20Python%20Package)
+# python-aparse
 ![pypi](https://img.shields.io/pypi/v/aparse.svg)
+![tests](https://img.shields.io/github/workflow/status/jkulhanek/aparse/run-tests?label=tests)
+![python](https://img.shields.io/badge/python-3.7%2C3.8.%2C3.9-brightgreen)
+
 
 Python argparse extension with support for typing.
 
