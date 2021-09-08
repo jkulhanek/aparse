@@ -1,8 +1,76 @@
 from typing import List
 from aparse import add_argparse_arguments, ArgparseArguments
-import argparse
 from argparse import ArgumentParser
 from dataclasses import dataclass
+
+
+def test_parse_arguments():
+    @add_argparse_arguments()
+    def testfn(k: int = 1, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', '3'])
+
+    assert hasattr(args, 'k')
+    assert hasattr(args, 'm')
+
+    d = testfn.from_argparse_arguments(args)
+    assert d['k'] == 3
+    assert d['m'] == 2.
+
+
+def test_parse_arguments_forward_arguments():
+    @add_argparse_arguments()
+    def testfn(k: int = 1, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', '3'])
+
+    assert hasattr(args, 'k')
+    assert hasattr(args, 'm')
+
+    d = testfn.from_argparse_arguments(args, k=4, m=1)
+    assert d['k'] == 4
+    assert d['m'] == 1
+
+
+def test_parse_arguments_ignore():
+    @add_argparse_arguments(ignore={'m'})
+    def testfn(k: int = 1, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', '3'])
+
+    assert hasattr(args, 'k')
+    assert not hasattr(args, 'm')
+
+    d = testfn.from_argparse_arguments(args)
+    assert d['k'] == 3
+    assert d['m'] == 2
+
+
+def test_bind_arguments():
+    @add_argparse_arguments()
+    def testfn(k: int = 1, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', '3'])
+
+    assert hasattr(args, 'k')
+    assert hasattr(args, 'm')
+
+    d = testfn.bind_argparse_arguments(args)
+    assert isinstance(d, dict)
+    assert d['k'] == 3
+    assert d['m'] == 2.
 
 
 def test_argparse_arguments():

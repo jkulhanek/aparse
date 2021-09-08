@@ -2,7 +2,7 @@ from functools import partial
 from argparse import ArgumentParser, Namespace
 from typing import Set, Callable, Any, Dict
 from ._lib import add_argparse_arguments as _add_argparse_arguments
-from ._lib import get_parameters, preprocess_argparse_parameter
+from ._lib import get_parameters, preprocess_argparse_parameter, ignore_parameters
 from ._lib import from_argparse_arguments as _from_argparse_arguments
 from ._lib import bind_argparse_arguments as _bind_argparse_arguments
 
@@ -27,11 +27,10 @@ def add_argparse_arguments(
 
     Returns: The original function extended with other functions.
     '''
-    if ignore is None:
-        ignore = set()
-
     def wrap(fn):
         parameters = get_parameters(fn).walk(preprocess_argparse_parameter)
+        if ignore is not None:
+            parameters = ignore_parameters(parameters, ignore)
         setattr(fn, 'add_argparse_arguments', partial(_add_argparse_arguments, parameters, _before_parse=before_parse))
         setattr(fn, 'from_argparse_arguments', partial(_from_argparse_arguments, parameters, fn, _after_parse=after_parse))
         setattr(fn, 'bind_argparse_arguments', partial(_bind_argparse_arguments, parameters))

@@ -1,6 +1,5 @@
 import inspect
 import sys
-from functools import reduce
 from argparse import ArgumentParser
 from typing import List, Dict, Any, Set
 import dataclasses
@@ -13,6 +12,14 @@ handlers = []
 def register_handler(handler):
     handlers.insert(0, handler())
     return handler
+
+
+def ignore_parameters(parameters, ignore):
+    def _call(x, children):
+        if x.full_name in ignore:
+            return None
+        return dataclasses.replace(x, children=children)
+    return parameters.walk(_call)
 
 
 def get_parameters(obj):
