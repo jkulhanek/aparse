@@ -271,7 +271,53 @@ class SimpleListHandler(Handler):
 ```
 
 ### Registering callbacks before and after parse
-This functionality is currently under construction.
+You can use this functionality when you want to modify the
+parser based on the input from the `parse_args` call or based
+on the program's arguments. A typical use case is to condition
+arguments based on the value of another argument.
+
+One callback is `before_parse`, which gets the `aparse.Parameter` 
+object (which describes how the argument will be parsed),
+parser instance, and a `kwargs` dictionary, which contains the
+string values parsed from the `parse_args` call or from `sys.argv`.
+The `before_parse` usually returns a new instance of `aparse.Parameter`.
+
+The following example shows adding a new parameter if the value of
+another parameter `k` is `3`.
+```
+def callback(param, parser, kwargs):
+    if kwargs['k'] == '3':
+        return Parameter(name='test', type=str, default_factory=lambda: 5)
+
+@add_argparse_arguments(before_parse=callback)
+def testfn(k: int = 1, **kwargs):
+    return kwargs
+
+argparser = ArgumentParser()
+argparser = testfn.add_argparse_arguments(argparser)
+args = argparser.parse_args(['--k', '3'])
+testfn.from_argparse_arguments(args)
+assert d['test'] == 5
+```
+
+Other callback `after_parse` gets as its input `aparse.Parameter`,
+`argparse.Namespace` and parsed `kwargs`. It returns a modified
+`kwargs`.
+```
+def callback(param, namespace, kwargs):
+    kwargs[k] += 1
+    return kwargs
+
+@add_argparse_arguments(after_parse=callback)
+def testfn(k: int = 1):
+    assert k == 4
+
+argparser = ArgumentParser()
+argparser = testfn.add_argparse_arguments(argparser)
+args = argparser.parse_args(['--k', '3'])
+testfn.from_argparse_arguments(args)
+```
 
 ### Conditional parsing
-This functionality is currently under construction.
+Conditional parsing can be implemented with `after_parse` and
+`before_parse` callbacks.

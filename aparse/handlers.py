@@ -76,7 +76,8 @@ class ArgparseArgumentsHandler(Handler):
 
     def bind(self, param, args):
         if param.type == ArgparseArguments:
-            return True, args.__dict__
+            value = {k: v for k, v in args.__dict__.items() if k != '_aparse_parameters'}
+            return True, value
         return False, args
 
     def preprocess_argparse_parameter(self, param: Parameter) -> Tuple[bool, Parameter]:

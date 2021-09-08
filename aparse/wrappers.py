@@ -33,7 +33,7 @@ def add_argparse_arguments(
             parameters = ignore_parameters(parameters, ignore)
         setattr(fn, 'add_argparse_arguments', partial(_add_argparse_arguments, parameters, _before_parse=before_parse))
         setattr(fn, 'from_argparse_arguments', partial(_from_argparse_arguments, parameters, fn, _after_parse=after_parse))
-        setattr(fn, 'bind_argparse_arguments', partial(_bind_argparse_arguments, parameters))
+        setattr(fn, 'bind_argparse_arguments', partial(_bind_argparse_arguments, parameters, after_parse=after_parse))
         return fn
 
     if _fn is not None:

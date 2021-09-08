@@ -72,6 +72,15 @@ class Parameter:
             return default
         return _DefaultFactory(self.default_factory)
 
+    def append_children(self, parameter):
+        return dataclasses.replace(self, children=self.children + [dataclasses.replace(parameter, parent=self)])
+
+    @staticmethod
+    def from_list(self, xs):
+        root = Parameter(None, dict)
+        root.children = [dataclasses.replace(x, parent=root) for x in xs]
+        return root
+
 
 class Handler:
     def preprocess_argparse_parameter(self, parameter: Parameter) -> Tuple[bool, Type]:

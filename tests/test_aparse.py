@@ -1,5 +1,5 @@
 from typing import List
-from aparse import add_argparse_arguments, ArgparseArguments
+from aparse import add_argparse_arguments, ArgparseArguments, Parameter
 from argparse import ArgumentParser
 from dataclasses import dataclass
 
@@ -19,6 +19,18 @@ def test_parse_arguments():
     d = testfn.from_argparse_arguments(args)
     assert d['k'] == 3
     assert d['m'] == 2.
+
+
+def test_hacked_argparse_registered():
+    @add_argparse_arguments()
+    def testfn():
+        pass
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args([])
+
+    assert hasattr(args, '_aparse_parameters')
 
 
 def test_parse_arguments_forward_arguments():
@@ -249,10 +261,10 @@ def test_argparse_arguments_with_prefix2():
     assert hasattr(args, 'test2_k')
     assert hasattr(args, 'test2_m')
 
-    d = testfn.bind_argparse_arguments(args, prefix='test1')
+    d = testfn.bind_argparse_arguments(args)
     assert isinstance(d, dict)
     assert 'test1' in d
-    assert 'test2' not in d
+    assert 'test2' in d
 
     d = testfn.from_argparse_arguments(args, _prefix='test1')
     assert isinstance(d, dict)
@@ -263,3 +275,43 @@ def test_argparse_arguments_with_prefix2():
     assert isinstance(d, dict)
     assert d['k'] == 4
     assert d['m'] == 2.
+
+
+def test_aparse_before_parse_callback():
+    def callback(param, parser, kwargs):
+        assert 'k' in kwargs
+        return Parameter(name='test', type=str, default_factory=lambda: 5)
+
+    @add_argparse_arguments(before_parse=callback)
+    def testfn(k: int = 1, **kwargs):
+        return kwargs
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', '3'])
+
+    assert hasattr(args, 'k')
+    assert hasattr(args, 'test')
+
+    d = testfn.from_argparse_arguments(args)
+    assert 'test' in d
+    assert d['test'] == 5
+
+
+def test_aparse_after_parse_callback():
+    def callback(param, argparse_args, kwargs):
+        kwargs['k'] += 1
+        return kwargs
+
+    @add_argparse_arguments(after_parse=callback)
+    def testfn(k: int = 1):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', '3'])
+
+    assert hasattr(args, 'k')
+
+    d = testfn.from_argparse_arguments(args)
+    assert d == 4

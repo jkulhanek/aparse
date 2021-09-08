@@ -1,7 +1,9 @@
 import inspect
 import sys
-from argparse import ArgumentParser
-from typing import List, Dict, Any, Set
+from functools import partial
+from collections import OrderedDict
+from argparse import ArgumentParser, Namespace
+from typing import List, Dict, Any, Set, Callable, Optional
 import dataclasses
 from .core import Parameter
 
@@ -87,10 +89,14 @@ def preprocess_argparse_parameter(param: Parameter, children):
     return param
 
 
-def bind_argparse_arguments(parameters: Parameter, argparse_args, ignore=None, prefix: str = None):
-    if prefix is not None:
-        parameters = add_prefix(parameters, prefix)
+def bind_argparse_arguments(
+        parameters: Parameter, argparse_args, ignore=None,
+        after_parse: Optional[Callable[[Parameter, Namespace, Dict[str, Any]], Dict[str, Any]]] = None):
     args_dict = argparse_args.__dict__
+    if '_aparse_parameters' in args_dict:
+        args_dict = {k: v for k, v in args_dict.items()}
+        parameters = args_dict.pop('_aparse_parameters')
+
     if ignore is not None:
         parameters = parameters.walk(lambda x, children:
                                      dataclasses.replace(x, children=children) if x.full_name not in ignore else None)
@@ -127,50 +133,59 @@ def bind_argparse_arguments(parameters: Parameter, argparse_args, ignore=None, p
                     if was_handled:
                         break
         return parameter, value
-    return parameters.walk(bind)
+    kwargs = parameters.walk(bind)
+    if after_parse is not None:
+        kwargs = after_parse(parameters, argparse_args, kwargs)
+    return kwargs
 
 
 def from_argparse_arguments(parameters: Parameter, function, argparse_args, *args, _ignore=None, _prefix: str = None, _after_parse=None, **kwargs):
-    new_kwargs = bind_argparse_arguments(parameters, argparse_args, prefix=_prefix, ignore=set(kwargs.keys()).union(_ignore or []))
+    new_kwargs = bind_argparse_arguments(parameters, argparse_args, ignore=set(kwargs.keys()).union(_ignore or []), after_parse=_after_parse)
     if _prefix is not None:
         new_kwargs = new_kwargs[_prefix]
     new_kwargs.update(kwargs)
-    if _after_parse is not None:
-        new_kwargs = _after_parse(argparse_args, new_kwargs)
     return function(*args, **new_kwargs)
 
 
-def _add_before_parse(parser, before_parse, defaults):
-    if before_parse is None:
-        return parser
+def _parse_arguments_manually(args, defaults):
+    kwargs = dict(**defaults)
+    if args is None:
+        # args default to the system args
+        args = sys.argv[1:]
+    else:
+        # make sure that args are mutable
+        args = list(args)
 
+    for nm, val in zip(args, args[1:]):
+        if nm.startswith('--') and '=' not in nm:
+            if val.startswith('--'):
+                val = True
+            kwargs[nm[2:].replace('-', '_')] = val
+        elif val.startswith('--'):
+            kwargs[val[2:]] = True
+    else:
+        for nm in args:
+            if nm.startswith('--') and '=' in nm:
+                nm, val = nm[2:].split('=', 1)
+                kwargs[nm[2:].replace('-', '_')] = val
+    return kwargs
+
+
+def _hack_argparse(parser, parameters, defaults, add_argparse_arguments, before_parse=None):
     super_parse_known_args = parser.parse_known_args
-    defaults = dict(**defaults)
+    defaults = dict(**defaults) if defaults is not None else dict()
 
     def hacked_parse_known_args(args=None, namespace=None):
-        kwargs = dict(**defaults)
-        if args is None:
-            # args default to the system args
-            args = sys.argv[1:]
-        else:
-            # make sure that args are mutable
-            args = list(args)
-
-        for nm, val in zip(args, args[1:]):
-            if nm.startswith('--') and '=' not in nm:
-                if val.startswith('--'):
-                    val = True
-                kwargs[nm[2:].replace('-', '_')] = val
-            elif val.startswith('--'):
-                kwargs[val[2:]] = True
-        else:
-            for nm in args:
-                if nm.startswith('--') and '=' in nm:
-                    nm, val = nm[2:].split('=', 1)
-                    kwargs[nm[2:].replace('-', '_')] = val
-
-        before_parse(parser, kwargs)
-        return super_parse_known_args(args, namespace)
+        kwargs = _parse_arguments_manually(args, defaults)
+        new_parameters = getattr(parser, '_aparse_parameters', parameters)
+        if before_parse is not None:
+            new_parameters = before_parse(new_parameters, parser, kwargs)
+            if new_parameters is not None:
+                new_parameters = new_parameters.walk(preprocess_argparse_parameter)
+                add_argparse_arguments(new_parameters, parser=parser)
+        result = super_parse_known_args(args, namespace)
+        setattr(result[0], '_aparse_parameters', getattr(parser, '_aparse_parameters', None))
+        return result
 
     setattr(parser, 'parse_known_args', hacked_parse_known_args)
     return parser
@@ -241,6 +256,13 @@ def read_parser_defaults(parameters: Parameter, parser, ignore, soft_defaults: b
     return parameters.walk(map)
 
 
+def merge_parameters(*args):
+    root = Parameter(name=None, type=dict)
+    children = [y for x in args if x is not None for y in x.children] + [x for x in args if x is not None and x.name is not None]
+    children = OrderedDict((y.name, dataclasses.replace(y, parent=root)) for y in children)
+    return dataclasses.replace(root, children=list(children.values()))
+
+
 def add_prefix(parameters, prefix):
     root = Parameter(name=None, type=dict)
     old_root = dataclasses.replace(parameters, parent=root, name=prefix, type=dict)
@@ -253,14 +275,17 @@ def add_argparse_arguments(parameters: Parameter, parser: ArgumentParser,
                            ignore: Set[str] = None, soft_defaults: bool = False, _before_parse=None):
     if prefix is not None:
         parameters = add_prefix(parameters, prefix)
+    serialized_call = partial(add_argparse_arguments,
+                              defaults=defaults, ignore=ignore, soft_defaults=soft_defaults)
+    parser = _hack_argparse(parser, parameters, defaults, serialized_call, _before_parse)
+    setattr(parser, '_aparse_parameters', merge_parameters(getattr(parser, '_aparse_parameters', None), parameters))
+
     if defaults is None:
         defaults = dict()
     parameters, left_defaults = set_defaults(parameters, defaults)
     if left_defaults:
         raise ValueError(f'Some default were not found: {list(left_defaults.keys())}')
     parameters = read_parser_defaults(parameters, parser, list(defaults.keys()), soft_defaults=soft_defaults)
-    if _before_parse is not None:
-        parser = _add_before_parse(parser, _before_parse, defaults)
 
     if ignore is None:
         ignore = {}
