@@ -284,7 +284,7 @@ The `before_parse` usually returns a new instance of `aparse.Parameter`.
 
 The following example shows adding a new parameter if the value of
 another parameter `k` is `3`.
-```
+```python
 def callback(param, parser, kwargs):
     if kwargs['k'] == '3':
         return Parameter(name='test', type=str, default_factory=lambda: 5)
@@ -303,7 +303,7 @@ assert d['test'] == 5
 Other callback `after_parse` gets as its input `aparse.Parameter`,
 `argparse.Namespace` and parsed `kwargs`. It returns a modified
 `kwargs`.
-```
+```python
 def callback(param, namespace, kwargs):
     kwargs[k] += 1
     return kwargs
