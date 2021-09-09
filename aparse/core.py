@@ -1,9 +1,9 @@
 import sys
 from argparse import ArgumentParser
 import dataclasses
-from typing import Type, Any, NewType, Dict, Union, Callable, List, Tuple, _type_check
+from typing import Any, NewType, Dict, Union, Callable, List, Tuple, Optional
 try:
-    from typing import Literal
+    from typing import Literal  # type: ignore
 except(ImportError):
     # Literal polyfill
     class _Literal:
@@ -35,12 +35,12 @@ class Parameter:
     type: Any
     help: str = ''
     children: List['Parameter'] = dataclasses.field(default_factory=list)
-    default_factory: Callable[[], Any] = None
-    parent: 'Parameter' = dataclasses.field(default=None, repr=False)
-    choices: List[Any] = None
-    argument_type: Any = None
+    default_factory: Optional[Callable[[], Any]] = None
+    choices: Optional[List[Any]] = None
+    argument_type: Optional[Any] = None
+    _argument_name: Optional[Tuple[str]] = None
 
-    def walk(self, fn: Callable[['Parameter', List[Any]], Union['Parameter', Dict, None]]):
+    def walk(self, fn: Callable[['ParameterWithPath', List[Any]], Any]):
         def _walk(e, parent):
             e = ParameterWithPath(e, parent)
             new_children = []
@@ -99,7 +99,7 @@ class Parameter:
 @dataclasses.dataclass
 class ParameterWithPath:
     parameter: Parameter
-    parent: 'ParameterWithPath' = None
+    parent: Optional['ParameterWithPath'] = None
 
     @property
     def name(self):
@@ -137,16 +137,18 @@ class ParameterWithPath:
 
     @property
     def argument_name(self):
-        if self.full_name is None:
-            return None
-        return self.full_name.replace('.', '_')
+        if self.parameter._argument_name is not None:
+            return self.parameter._argument_name[0]
+        if self.parent is not None and self.parent.argument_name is not None:
+            return self.parent.argument_name + '_' + self.name
+        return self.name
 
     def replace(self, **kwargs):
         return ParameterWithPath(self.parameter.replace(**kwargs), self.parent)
 
 
 class Handler:
-    def preprocess_argparse_parameter(self, parameter: ParameterWithPath) -> Tuple[bool, Union[Parameter, ParameterWithPath]]:
+    def preprocess_argparse_parameter(self, parameter: ParameterWithPath) -> Tuple[bool, ParameterWithPath]:
         return False, parameter
 
     def parse_value(self, parameter: ParameterWithPath, value: Any) -> Tuple[bool, Any]:
@@ -160,7 +162,7 @@ class Handler:
 
 
 class _ConditionalTypeMeta(type):
-    def __new__(cls, name, bases, ns):
+    def __new__(cls, name, bases, ns, prefix=True):
         """Create new typed dict class object.
         This method is called when ConditionalType is subclassed,
         or when ConditionalType is instantiated. This way
@@ -180,9 +182,8 @@ class _ConditionalTypeMeta(type):
         annotations.update(own_annotations)
         tp = Union.__getitem__(tuple(annotations.values()))
         setattr(tp, '__conditional_map__', annotations)
+        setattr(tp, '__conditional_prefix__', prefix)
         return tp
-
-    __call__ = lambda x: x  # static method
 
     def __subclasscheck__(cls, other):
         # Typed dicts are only for static structural subtyping.
@@ -191,7 +192,7 @@ class _ConditionalTypeMeta(type):
     __instancecheck__ = __subclasscheck__
 
 
-def ConditionalType(typename, fields=None, **kwargs):
+def ConditionalType(typename, fields=None, *, prefix: bool = True, **kwargs):
     """ConditionalType allows aparse to condition its choices for a
     specific parameter based on an argument.
     Usage::
@@ -219,8 +220,8 @@ def ConditionalType(typename, fields=None, **kwargs):
     except (AttributeError, ValueError):
         pass
 
-    return _ConditionalTypeMeta(typename, (), ns)
+    return _ConditionalTypeMeta(typename, (), ns, prefix=prefix)
 
 
 _ConditionalType = type.__new__(_ConditionalTypeMeta, 'ConditionalType', (), {})
-ConditionalType.__mro_entries__ = lambda bases: (_ConditionalType,)
+setattr(ConditionalType, '__mro_entries__', lambda bases: (_ConditionalType,))

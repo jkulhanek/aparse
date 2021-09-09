@@ -346,6 +346,33 @@ def test_aparse_conditional_matching():
     assert k.prop_d2 == 'ok'
 
 
+def test_aparse_conditional_matching_no_prefix():
+    @dataclass
+    class D1:
+        prop_d2: str = 'test'
+
+    @dataclass
+    class D2:
+        prop_d2: str = 'test-d2'
+
+    class DSwitch(ConditionalType, prefix=False):
+        d1: D1
+        d2: D2
+
+    @add_argparse_arguments
+    def testfn(k: DSwitch):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', 'd2', '--prop-d2', 'ok'])
+    assert hasattr(args, 'k')
+
+    k = testfn.from_argparse_arguments(args)
+    assert isinstance(k, D2)
+    assert k.prop_d2 == 'ok'
+
+
 def test_utils_prefix_parameter():
     from aparse.utils import prefix_parameter
 

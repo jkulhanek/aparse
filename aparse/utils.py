@@ -2,7 +2,9 @@ from functools import reduce
 import dataclasses
 import copy
 from .core import Parameter
-from inspect import _empty
+
+
+_empty = object()
 
 
 def get_path(obj, path, default=_empty, _current_path=None):
@@ -31,8 +33,6 @@ def get_path(obj, path, default=_empty, _current_path=None):
 
 
 def prefix_parameter(parameter, prefix, container_type=None):
-    assert parameter.parent is None
-
     parameter = copy.copy(parameter)
     has_container = True
     if parameter.name is not None:
@@ -71,12 +71,12 @@ def merge_parameter_trees(*args, force=True):
             a = a.replace(type=b.type)
         children = list(a.children)
         a = dataclasses.replace(a, children=children)
-        c_map = {a.name: i for i, a in enumerate(children)}
+        # c_map = {a.name: i for i, a in enumerate(children)}
         for c2 in b.children:
-            if c2.name in c_map:
-                children[c_map[c2.name]] = merge_node(children[c_map[c2.name]], c2)
-            else:
-                children.append(dataclasses.replace(c2))
+            # if c2.name in c_map:
+            #     children[c_map[c2.name]] = merge_node(children[c_map[c2.name]], c2)
+            # else:
+            children.append(dataclasses.replace(c2))
         return a
 
     return reduce(merge_node, parameters, Parameter(None, dict))

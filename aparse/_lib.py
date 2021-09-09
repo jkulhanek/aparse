@@ -4,11 +4,11 @@ from functools import partial
 from argparse import ArgumentParser, Namespace
 from typing import List, Dict, Any, Set, Callable, Optional, Tuple
 import dataclasses
-from .core import Parameter, ParameterWithPath
+from .core import Parameter, ParameterWithPath, Handler
 from .utils import merge_parameter_trees, prefix_parameter, get_path
 
 
-handlers = []
+handlers: List[Handler] = []
 
 
 def register_handler(handler):
@@ -45,7 +45,7 @@ def get_parameters(obj):
                     default_factory = lambda: p.default
                 elif dataclasses.is_dataclass(cls) and isinstance(p.default, dataclasses._HAS_DEFAULT_FACTORY_CLASS):
                     default_factory = cls.__dataclass_fields__[p.name].default_factory
-                param = Parameter(p.name, p.annotation, default_factory=default_factory, parent=parent)
+                param = Parameter(p.name, p.annotation, default_factory=default_factory)
                 generated.add(full_name)
                 if dataclasses.is_dataclass(p.annotation):
                     param.children.extend(collect_parameters(p.annotation, param, full_name))
@@ -68,7 +68,6 @@ def get_parameters(obj):
                     p.name,
                     p.annotation,
                     default_factory=default_factory,
-                    parent=root,
                 )
                 if dataclasses.is_dataclass(p.annotation):
                     # Hierarchical arguments
@@ -78,7 +77,7 @@ def get_parameters(obj):
     return root
 
 
-def preprocess_argparse_parameter(param: Parameter, children):
+def preprocess_argparse_parameter(param: ParameterWithPath, children):
     handled = False
     param = param.replace(children=children)
     if param.name is not None:
@@ -259,7 +258,7 @@ def read_parser_defaults(parameters: Parameter, parser, ignore, soft_defaults: b
 
 def add_argparse_arguments(parameters: Parameter, parser: ArgumentParser,
                            defaults: Dict[str, Any] = None, prefix: str = None,
-                           ignore: Set[str] = None, soft_defaults: bool = False, _before_parse=None):
+                           ignore: Optional[Set[str]] = None, soft_defaults: bool = False, _before_parse=None):
     if prefix is not None:
         parameters = prefix_parameter(parameters, prefix, dict)
     serialized_call = partial(add_argparse_arguments,
@@ -275,17 +274,17 @@ def add_argparse_arguments(parameters: Parameter, parser: ArgumentParser,
     parameters = read_parser_defaults(parameters, parser, list(defaults.keys()), soft_defaults=soft_defaults)
 
     if ignore is None:
-        ignore = {}
+        ignore = set()
 
     for param in parameters.enumerate_parameters():
         if param.name is None or param.full_name in ignore:
             continue
 
-        for existing_action in parser._actions:
-            if existing_action.dest == param.argument_name:
+        existing_action = None
+        for action in parser._actions:
+            if action.dest == param.argument_name:
+                existing_action = action
                 break
-        else:
-            existing_action = None
 
         was_handled = False
         for h in handlers:

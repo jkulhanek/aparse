@@ -81,7 +81,7 @@ class ArgparseArgumentsHandler(Handler):
             return True, value
         return False, args
 
-    def preprocess_argparse_parameter(self, param: Parameter) -> Tuple[bool, Parameter]:
+    def preprocess_argparse_parameter(self, param):
         if param.type == ArgparseArguments:
             return True, param.replace(argument_type=ArgparseArguments, children=[])
         return False, param
@@ -96,12 +96,12 @@ class SimpleListHandler(Handler):
                 return tp
         return None
 
-    def preprocess_argparse_parameter(self, parameter: Parameter) -> Type:
+    def preprocess_argparse_parameter(self, parameter):
         if self._list_type(parameter.type) is not None:
             return True, parameter.replace(argument_type=str)
         return False, parameter
 
-    def parse_value(self, parameter: Parameter, value: Any) -> Any:
+    def parse_value(self, parameter, value):
         list_type = self._list_type(parameter.type)
         if list_type is not None and isinstance(value, str):
             return True, list(map(list_type, value.split(',')))
@@ -113,12 +113,12 @@ class FromStrHandler(Handler):
     def _does_handle(self, tp: Type):
         return hasattr(tp, 'from_str')
 
-    def preprocess_argparse_parameter(self, parameter: Parameter) -> Type:
+    def preprocess_argparse_parameter(self, parameter):
         if self._does_handle(parameter.type):
             return True, parameter.replace(argument_type=str)
         return False, parameter
 
-    def parse_value(self, parameter: Parameter, value: Any) -> Any:
+    def parse_value(self, parameter, value):
         if self._does_handle(parameter.type) and isinstance(value, str):
             return True, parameter.type.from_str(value)
         return False, value
@@ -133,7 +133,7 @@ class ConditionalTypeHandler(Handler):
             return hasattr(tp, '__conditional_map__')
         return False
 
-    def preprocess_argparse_parameter(self, parameter: Parameter) -> Type:
+    def preprocess_argparse_parameter(self, parameter):
         if self._does_handle(parameter.type):
             return True, parameter.replace(
                 argument_type=str,
@@ -150,6 +150,8 @@ class ConditionalTypeHandler(Handler):
                 if tp is not None:
                     parameter = get_parameters(tp).walk(preprocess_argparse_parameter)
                     parameter = parameter.replace(name=param.name, type=tp)
+                    if not param.type.__conditional_prefix__:
+                        parameter = parameter.replace(_argument_name=(None,))
                     if param.parent is not None and param.parent.full_name is not None:
                         parameter = prefix_parameter(parameter, param.parent.full_name)
                     result.append(parameter)
