@@ -1,6 +1,7 @@
+import sys
 from argparse import ArgumentParser
 import dataclasses
-from typing import Type, Any, NewType, Dict, Union, Callable, List, Tuple
+from typing import Type, Any, NewType, Dict, Union, Callable, List, Tuple, _type_check
 try:
     from typing import Literal
 except(ImportError):
@@ -39,29 +40,42 @@ class Parameter:
     choices: List[Any] = None
     argument_type: Any = None
 
-    @property
-    def full_name(self):
-        if self.parent is not None and self.parent.name is not None:
-            return self.parent.full_name + '.' + self.name
-        return self.name
-
-    @property
-    def argument_name(self):
-        return self.full_name.replace('.', '_')
-
     def walk(self, fn: Callable[['Parameter', List[Any]], Union['Parameter', Dict, None]]):
-        new_children = []
-        for p in self.children:
-            result = p.walk(fn)
-            if result is not None:
-                new_children.append(result)
-        return fn(self, children=new_children)
+        def _walk(e, parent):
+            e = ParameterWithPath(e, parent)
+            new_children = []
+            for p in e.children:
+                result = _walk(p, e)
+                if result is not None:
+                    if isinstance(result, ParameterWithPath):
+                        result = result.parameter
+                    new_children.append(result)
+            return fn(e, children=new_children)
+        result = _walk(self, None)
+        if isinstance(result, ParameterWithPath):
+            return result.parameter
+        return result
 
     def enumerate_parameters(self):
-        yield self
+        def _enumerate(e, parent):
+            e = ParameterWithPath(e, parent)
+            yield e
+            for x in e.children:
+                for y in _enumerate(x, e):
+                    yield y
+        return _enumerate(self, None)
+
+    def __getitem__(self, name):
         for x in self.children:
-            for y in x.enumerate_parameters():
-                yield y
+            if x.name == name:
+                return x
+        raise IndexError(f'Element {name} not found')
+
+    def __contains__(self, name):
+        for x in self.children:
+            if x.name == name:
+                return True
+        return False
 
     @property
     def default(self):
@@ -72,25 +86,141 @@ class Parameter:
             return default
         return _DefaultFactory(self.default_factory)
 
-    def append_children(self, parameter):
-        return dataclasses.replace(self, children=self.children + [dataclasses.replace(parameter, parent=self)])
+    def __str__(self):
+        result = f'{self.name} [{self.type}]\n'
+        for x in self.children:
+            result += '  ' + str(x).replace('\n', '\n  ')
+        return result.strip('\n ')
 
-    @staticmethod
-    def from_list(self, xs):
-        root = Parameter(None, dict)
-        root.children = [dataclasses.replace(x, parent=root) for x in xs]
-        return root
+    def replace(self, **kwargs):
+        return dataclasses.replace(self, **kwargs)
+
+
+@dataclasses.dataclass
+class ParameterWithPath:
+    parameter: Parameter
+    parent: 'ParameterWithPath' = None
+
+    @property
+    def name(self):
+        return self.parameter.name
+
+    @property
+    def type(self):
+        return self.parameter.type
+
+    @property
+    def argument_type(self):
+        return self.parameter.argument_type
+
+    @property
+    def children(self):
+        return self.parameter.children
+
+    @property
+    def default_factory(self):
+        return self.parameter.default_factory
+
+    @property
+    def default(self):
+        return self.parameter.default
+
+    @property
+    def choices(self):
+        return self.parameter.choices
+
+    @property
+    def full_name(self):
+        if self.parent is not None and self.parent.name is not None:
+            return self.parent.full_name + '.' + self.name
+        return self.name
+
+    @property
+    def argument_name(self):
+        if self.full_name is None:
+            return None
+        return self.full_name.replace('.', '_')
+
+    def replace(self, **kwargs):
+        return ParameterWithPath(self.parameter.replace(**kwargs), self.parent)
 
 
 class Handler:
-    def preprocess_argparse_parameter(self, parameter: Parameter) -> Tuple[bool, Type]:
+    def preprocess_argparse_parameter(self, parameter: ParameterWithPath) -> Tuple[bool, Union[Parameter, ParameterWithPath]]:
         return False, parameter
 
-    def parse_value(self, parameter: Parameter, value: Any) -> Tuple[bool, Any]:
+    def parse_value(self, parameter: ParameterWithPath, value: Any) -> Tuple[bool, Any]:
         return False, value
 
-    def bind(self, parameter: Parameter, args: Dict[str, Any]) -> Tuple[bool, Any]:
+    def bind(self, parameter: ParameterWithPath, args: Dict[str, Any], children: List[Tuple[Parameter, Any]]) -> Tuple[bool, Any]:
         return False, args
 
-    def add_argparse_arguments(self, parameter: Parameter, parser: ArgumentParser, existing_action: Any = None) -> Tuple[bool, ArgumentParser]:
+    def add_argparse_arguments(self, parameter: ParameterWithPath, parser: ArgumentParser, existing_action: Any = None) -> Tuple[bool, ArgumentParser]:
         return False, parser
+
+
+class _ConditionalTypeMeta(type):
+    def __new__(cls, name, bases, ns):
+        """Create new typed dict class object.
+        This method is called when ConditionalType is subclassed,
+        or when ConditionalType is instantiated. This way
+        ConditionalType supports all three syntax forms described in its docstring.
+        Subclasses and instances of ConditionalType return actual dictionaries.
+        """
+        for base in bases:
+            if type(base) is not _ConditionalTypeMeta:
+                raise TypeError('cannot inherit from both a ConditionalType type '
+                                'and a non-ConditionalType base class')
+
+        annotations = {}
+        own_annotations = ns.get('__annotations__', {})
+        for base in bases:
+            annotations.update(base.__dict__.get('__annotations__', {}))
+
+        annotations.update(own_annotations)
+        tp = Union.__getitem__(tuple(annotations.values()))
+        setattr(tp, '__conditional_map__', annotations)
+        return tp
+
+    __call__ = lambda x: x  # static method
+
+    def __subclasscheck__(cls, other):
+        # Typed dicts are only for static structural subtyping.
+        raise TypeError('ConditionalType does not support instance and class checks')
+
+    __instancecheck__ = __subclasscheck__
+
+
+def ConditionalType(typename, fields=None, **kwargs):
+    """ConditionalType allows aparse to condition its choices for a
+    specific parameter based on an argument.
+    Usage::
+        class Model(ConditionalType):
+            gpt2: GPT2
+            resnet: ResNet
+    The type info can be accessed via the Model.__annotations__ dict,
+    and the Model.__required_keys__ and Model.__optional_keys__ frozensets.
+    ConditionalType supports two additional equivalent forms:
+        Model = ConditionalType('Model', gpt2=GPT2, resnet=ResNet)
+        Model = ConditionalType('Model', dict(gpt2=GPT2, resnet=ResNet))
+    The class syntax is only supported in Python 3.6+, while two other
+    syntax forms work for Python 2.7 and 3.2+
+    """
+    if fields is None:
+        fields = kwargs
+    elif kwargs:
+        raise TypeError("ConditionalType takes either a dict or keyword arguments,"
+                        " but not both")
+
+    ns = {'__annotations__': dict(fields)}
+    try:
+        # Setting correct module is necessary to make typed dict classes pickleable.
+        ns['__module__'] = sys._getframe(1).f_globals.get('__name__', '__main__')
+    except (AttributeError, ValueError):
+        pass
+
+    return _ConditionalTypeMeta(typename, (), ns)
+
+
+_ConditionalType = type.__new__(_ConditionalTypeMeta, 'ConditionalType', (), {})
+ConditionalType.__mro_entries__ = lambda bases: (_ConditionalType,)
