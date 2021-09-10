@@ -74,7 +74,6 @@ def command(name=None, cls=None, before_parse=None, after_parse=None, **kwargs):
 
         fn = runtime.fn
         fn = _wrap(fn)
-        breakpoint()
         return fn
 
     return wrap
