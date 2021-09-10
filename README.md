@@ -88,6 +88,8 @@ instance = Example.from_argparse_arguments(args)
 Import `aparse.click` instead of `click` and let `aparse` register all
 the arguments and options:
 ```python
+# python main.py --arg1 test --arg2 4
+
 from aparse import click
 
 @click.command()
@@ -99,13 +101,15 @@ example()
 
 When using `click.groups`:
 ```python
+# python main.py example --arg1 test --arg2 4
+
 from aparse import click
 
 @click.group()
 def main():
     pass
 
-@main.command()
+@main.command('example')
 def example(arg1: str, arg2: int = 5):
     pass
 

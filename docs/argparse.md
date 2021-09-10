@@ -5,6 +5,54 @@ nav_order: 2
 permalink: /argparse
 ---
 # Using argparse
+
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
+## Simple function
+Extend a function with `@add_argparse_arguments` decorator to add arguments automatically:
+```python
+import argparse
+from aparse import add_argparse_arguments
+
+@add_argparse_arguments()
+def example(arg1: str, arg2: int = 5):
+    pass
+
+parser = argparse.ArgumentParser()
+parser = example.add_argparse_arguments(parser)
+args = parser.parse_args()
+
+# Call example with args
+example.from_argparse_arguments(args)
+```
+
+## Simple class
+Extend a class with `@add_argparse_arguments` decorator to construct it automatically:
+```python
+import argparse
+from aparse import add_argparse_arguments
+
+@add_argparse_arguments()
+class Example:
+    def __init__(self, arg1: str, arg2: int = 5):
+        pass
+
+parser = argparse.ArgumentParser()
+parser = Example.add_argparse_arguments(parser)
+args = parser.parse_args()
+
+# Construct Example with args
+instance = Example.from_argparse_arguments(args)
+```
+
 ## Class inheritance
 Arguments are automatically added from all base classes 
 if kwargs or args arguments are used in the constructor.
@@ -82,14 +130,14 @@ example2.from_argparse_arguments(args, _prefix='ex2')
 ```
 
 ## Getting raw argparse arguments
-If you need access to the raw arguments, you can use `aparse.ArgparseArguments`,
+If you need access to the raw arguments, you can use `aparse.AllArguments`,
 in which case, the argparse arguments are passed as a dictionary.
 ```python
 import argparse
-from aparse import add_argparse_arguments, ArgparseArguments
+from aparse import add_argparse_arguments, AllArguments
 
 @add_argparse_arguments()
-def example(ArgparseArguments: args):
+def example(args: AllArguments):
     pass
 
 parser = argparse.ArgumentParser()
@@ -206,14 +254,14 @@ arguments based on the value of another argument.
 
 One callback is `before_parse`, which gets the `aparse.Parameter` 
 object (which describes how the argument will be parsed),
-parser instance, and a `kwargs` dictionary, which contains the
+runtime instance, and a `kwargs` dictionary, which contains the
 string values parsed from the `parse_args` call or from `sys.argv`.
 The `before_parse` usually returns a new instance of `aparse.Parameter`.
 
 The following example shows adding a new parameter if the value of
 another parameter `k` is `3`.
 ```python
-def callback(param, parser, kwargs):
+def callback(param, runtime, kwargs):
     if kwargs['k'] == '3':
         return Parameter(name='test', type=str, default_factory=lambda: 5)
 
@@ -229,11 +277,11 @@ assert d['test'] == 5
 ```
 
 Other callback `after_parse` gets as its input `aparse.Parameter`,
-`argparse.Namespace` and parsed `kwargs`. It returns a modified
+raw arguments and parsed `kwargs`. It returns a modified
 `kwargs`.
 ```python
-def callback(param, namespace, kwargs):
-    kwargs[k] += 1
+def callback(param, arguments, kwargs):
+    kwargs['k'] += 1
     return kwargs
 
 @add_argparse_arguments(after_parse=callback)

@@ -6,6 +6,16 @@ permalink: /
 ---
 # Introduction
 
+{: .no_toc }
+
+## Table of contents
+{: .no_toc .text-delta }
+
+1. TOC
+{:toc}
+
+---
+
 [Aparse](https://github.com/jkulhanek/aparse) is a python argparse extension with support for typing.
 It has support for `argparse` and `click`
 libraries. It uses function signatures to automatically register arguments to parsers.
@@ -22,13 +32,6 @@ The following features are currently supported:
 - Callbacks before and after arguments are parsed.
 - Conditional arguments, where the type of arguments depends on the value of another argument.
 
-{: .no_toc }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
 
 ## Why aparse
 **Why not argparse?**
@@ -99,6 +102,8 @@ instance = Example.from_argparse_arguments(args)
 Import `aparse.click` instead of `click` and let `aparse` register all
 the arguments and options:
 ```python
+# python main.py --arg1 test --arg2 4
+
 from aparse import click
 
 @click.command()
@@ -110,13 +115,15 @@ example()
 
 When using `click.groups`:
 ```python
+# python main.py example --arg1 test --arg2 4
+
 from aparse import click
 
 @click.group()
 def main():
     pass
 
-@main.command()
+@main.command('example')
 def example(arg1: str, arg2: int = 5):
     pass
 
