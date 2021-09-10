@@ -5,6 +5,25 @@ from aparse import ConditionalType, Parameter, AllArguments
 from dataclasses import dataclass
 
 
+def test_click_all_arguments(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--a', '3', '--b', 'tk'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def test(args: AllArguments, b: str, a: int = 5):
+        nonlocal was_called
+        was_called = True
+        assert b == 'tk'
+        assert a == 3
+        assert isinstance(args, dict)
+        assert 'a' in args
+        assert 'b' in args
+
+    test()
+    assert was_called
+
+
 def test_click(monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['prg.py', '--a', '3', '--b', 'tk'])
     monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
