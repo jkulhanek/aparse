@@ -6,7 +6,7 @@
 
 Aparse is a python argparse extension with support for typing. It has support for `argparse` and `click`
 libraries. It uses function signatures to automatically register arguments to parsers.
-Please refer to the documentation: [jkulhanek.github.com/aparse](https://jkulhanek.github.com/aparse).
+Please refer to the [documentation](https://jkulhanek.github.io/aparse).
 
 The following features are currently supported:
 - Arguments with `int`, `float`, `str`, `bool` values both with and without default value.
@@ -117,7 +117,7 @@ def example(arg1: str, arg2: int = 5):
 main()
 ```
 
-For further details please look at the documentation: [jkulhanek.github.com/aparse](https://jkulhanek.github.com/aparse).
+For further details please look at the [documentation](https://jkulhanek.github.io/aparse).
 
 
 ## License
