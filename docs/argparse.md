@@ -1,3 +1,9 @@
+---
+layout: default
+title: Using argparse
+nav_order: 2
+permalink: /argparse
+---
 # Using argparse
 ## Class inheritance
 Arguments are automatically added from all base classes 

@@ -1,3 +1,10 @@
+---
+layout: default
+title: Introduction
+nav_order: 1
+permalink: /
+---
+
 # Introduction
 [Aparse](https://github.com/jkulhanek/aparse) is a python argparse extension with support for typing.
 It has support for `argparse` and `click`
@@ -114,4 +121,4 @@ main()
 ```
 
 ## License
-[MIT](../LICENSE)
+[MIT](https://github.com/jkulhanek/aparse/blob/master/LICENSE)
