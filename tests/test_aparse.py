@@ -6,7 +6,7 @@ from argparse import ArgumentParser
 from dataclasses import dataclass
 
 
-def test_parse_arguments():
+def test_argparse_parse_arguments():
     @add_argparse_arguments()
     def testfn(k: int = 1, m: float = 2.):
         return dict(k=k, m=m)
@@ -279,10 +279,10 @@ def test_argparse_arguments_with_prefix2():
     assert d['m'] == 2.
 
 
-def test_aparse_before_parse_callback():
+def test_argparse_before_parse_callback():
     def callback(param, parser, kwargs):
         assert 'k' in kwargs
-        return Parameter(name='test', type=str, default_factory=lambda: 5)
+        return Parameter(name='test', type=int, default_factory=lambda: 5)
 
     @add_argparse_arguments(before_parse=callback)
     def testfn(k: int = 1, **kwargs):
@@ -300,7 +300,7 @@ def test_aparse_before_parse_callback():
     assert d['test'] == 5
 
 
-def test_aparse_after_parse_callback():
+def test_argparse_after_parse_callback():
     def callback(param, argparse_args, kwargs):
         kwargs['k'] += 1
         return kwargs
@@ -319,7 +319,7 @@ def test_aparse_after_parse_callback():
     assert d == 4
 
 
-def test_aparse_conditional_matching():
+def test_argparse_conditional_matching():
     @dataclass
     class D1:
         prop_d2: str = 'test'
@@ -346,7 +346,7 @@ def test_aparse_conditional_matching():
     assert k.prop_d2 == 'ok'
 
 
-def test_aparse_conditional_matching_no_prefix():
+def test_argparse_conditional_matching_no_prefix():
     @dataclass
     class D1:
         prop_d2: str = 'test'
@@ -371,11 +371,3 @@ def test_aparse_conditional_matching_no_prefix():
     k = testfn.from_argparse_arguments(args)
     assert isinstance(k, D2)
     assert k.prop_d2 == 'ok'
-
-
-def test_utils_prefix_parameter():
-    from aparse.utils import prefix_parameter
-
-    p = Parameter(name='test', type=str)
-    p2 = prefix_parameter(p, 'a.bb.ccc')
-    assert get_path(p2, 'bb.ccc.test').name == 'test'

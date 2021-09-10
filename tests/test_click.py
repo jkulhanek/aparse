@@ -139,7 +139,7 @@ def test_click_before_parse_callback(monkeypatch):
 
     def callback(param, parser, kwargs):
         assert 'k' in kwargs
-        return Parameter(name='test', type=str, default_factory=lambda: 5)
+        return Parameter(name='test', type=int, default_factory=lambda: 5)
 
     @click.command(before_parse=callback)
     def testfn(k: int = 1, **kwargs):
