@@ -28,7 +28,8 @@ class ClickRuntime(Runtime):
                                    show_choices=choices is not None)(self.fn)
 
     def read_defaults(self, parameters: Parameter):
-        # This is not needed, click will call parse only once
+        # TODO: enable click command to be integrated with rest of click options
+        # read self.fn.params
         return parameters
 
     def add_parameters(self, parameters: Parameter):
@@ -73,6 +74,7 @@ def command(name=None, cls=None, before_parse=None, after_parse=None, **kwargs):
 
         fn = runtime.fn
         fn = _wrap(fn)
+        breakpoint()
         return fn
 
     return wrap
