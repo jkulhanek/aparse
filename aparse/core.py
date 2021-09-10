@@ -1,7 +1,6 @@
 import sys
-from argparse import ArgumentParser
 import dataclasses
-from typing import Any, NewType, Dict, Union, Callable, List, Tuple, Optional
+from typing import Any, NewType, Dict, Union, Callable, List, Tuple, Optional, Type
 try:
     from typing import Literal  # type: ignore
 except(ImportError):
@@ -13,6 +12,7 @@ except(ImportError):
             return type(tp)
     Literal = _Literal()
 ArgparseArguments = NewType('ArgparseArguments', Dict[str, Any])
+_empty = object()
 
 
 class _DefaultFactory:
@@ -31,8 +31,8 @@ class _DefaultFactory:
 
 @dataclasses.dataclass
 class Parameter:
-    name: str
-    type: Any
+    name: Optional[str]
+    type: Optional[Type]
     help: str = ''
     children: List['Parameter'] = dataclasses.field(default_factory=list)
     default_factory: Optional[Callable[[], Any]] = None
@@ -76,6 +76,12 @@ class Parameter:
             if x.name == name:
                 return True
         return False
+
+    def find(self, name: str) -> Optional['Parameter']:
+        for x in self.children:
+            if x.name == name:
+                return x
+        return None
 
     @property
     def default(self):
@@ -130,10 +136,20 @@ class ParameterWithPath:
         return self.parameter.choices
 
     @property
+    def help(self):
+        return self.parameter.help
+
+    @property
     def full_name(self):
         if self.parent is not None and self.parent.name is not None:
             return self.parent.full_name + '.' + self.name
         return self.name
+
+    def find(self, name):
+        child = self.parameter.find(name)
+        if child is not None:
+            return ParameterWithPath(child, self)
+        return None
 
     @property
     def argument_name(self):
@@ -147,8 +163,19 @@ class ParameterWithPath:
         return ParameterWithPath(self.parameter.replace(**kwargs), self.parent)
 
 
+class Runtime:
+    def add_parameter(self, argument_name: str,
+                      argument_type: Type, required: bool = True,
+                      help: str = None,
+                      default: Any = _empty, choices: Optional[List[Any]] = None):
+        raise NotImplementedError('add_parameter is not implemented')
+
+    def read_defaults(self, parameters: Parameter) -> Parameter:
+        raise NotImplementedError('read_defaults is not implemented')
+
+
 class Handler:
-    def preprocess_argparse_parameter(self, parameter: ParameterWithPath) -> Tuple[bool, ParameterWithPath]:
+    def preprocess_parameter(self, parameter: ParameterWithPath) -> Tuple[bool, ParameterWithPath]:
         return False, parameter
 
     def parse_value(self, parameter: ParameterWithPath, value: Any) -> Tuple[bool, Any]:
@@ -157,8 +184,8 @@ class Handler:
     def bind(self, parameter: ParameterWithPath, args: Dict[str, Any], children: List[Tuple[Parameter, Any]]) -> Tuple[bool, Any]:
         return False, args
 
-    def add_argparse_arguments(self, parameter: ParameterWithPath, parser: ArgumentParser, existing_action: Any = None) -> Tuple[bool, ArgumentParser]:
-        return False, parser
+    def add_parameter(self, parameter: ParameterWithPath, parser: Runtime) -> bool:
+        return False
 
 
 class _ConditionalTypeMeta(type):

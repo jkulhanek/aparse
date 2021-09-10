@@ -1,14 +1,13 @@
-import inspect
-import dataclasses
-from typing import Type, Any, Tuple
-from .core import Handler, Parameter, ArgparseArguments, ParameterWithPath
-from ._lib import register_handler, get_parameters, preprocess_argparse_parameter
-from .utils import get_path, prefix_parameter, merge_parameter_trees
+from typing import Type
+from .core import Handler, ArgparseArguments, ParameterWithPath, Runtime, _empty
+from ._lib import register_handler, preprocess_parameter
+from .utils import get_parameters
+from .utils import prefix_parameter, merge_parameter_trees
 
 
 @register_handler
 class DefaultHandler(Handler):
-    def preprocess_argparse_parameter(self, param: ParameterWithPath):
+    def preprocess_parameter(self, param: ParameterWithPath):
         if len(param.children) > 0:
             return True, param.parameter
         if param.type is None:
@@ -39,49 +38,38 @@ class DefaultHandler(Handler):
             return True, param.replace(argument_type=arg_type, choices=choices)
         return False, None
 
-    def add_argparse_arguments(self, param, parser, existing_action=None):
-        if len(param.children) > 0 and param.type not in {str, float, bool, int}:
-            return True, parser
+    def add_parameter(self, param, runtime: Runtime):
+        if len(param.children) > 0 or param.argument_type not in {str, float, bool, int}:
+            return True
 
+        argument_name = param.argument_name
+        if param.argument_type == bool:
+            negative_option = argument_name
+            if negative_option.startswith('use-'):
+                negative_option = negative_option[len('use-'):]
+            argument_name += '/' + f'--no-{negative_option}'
         required = param.default_factory is None
-        if existing_action is not None:
-            # We will update default
-            existing_action.required = required
-            existing_action.help = f'{param.help} [{param.default}]' if not required else f'{param.help} [required]'
-            existing_action.choices = param.choices
-            parser.set_defaults(**{param.argument_name: param.default})
-        else:
-            arg_type = param.argument_type
-            arg_name = param.argument_name.replace('_', '-')
-            if arg_type == bool:
-                parser.set_defaults(**{param.argument_name: param.default})
-                parser.add_argument(f'--{arg_name}', dest=param.argument_name, action='store_true', help=f'{param.help} [default]' if param.default_factory() else param.help)
-                _arg_name = arg_name
-                if arg_name.startswith('use-'):
-                    _arg_name = arg_name[len('use-'):]
-                parser.add_argument(f'--no-{_arg_name}', dest=param.argument_name, action='store_false', help=f'{param.help} [default]' if not param.default_factory() else param.help)
-            else:
-                if param.default_factory is not None:
-                    parser.add_argument(f'--{arg_name}', type=arg_type, choices=param.choices, default=param.default, help=f'{help} [{param.default}]')
-                else:
-                    parser.add_argument(f'--{arg_name}', type=arg_type, choices=param.choices, default=param.default, required=True, help=f'{help} [required]')
-        return True, parser
+        runtime.add_parameter(param.argument_name, param.argument_type,
+                              required=required, help=param.help,
+                              default=param.default if param.default_factory is not None else _empty,
+                              choices=param.choices)
+        return True
 
 
 @register_handler
 class ArgparseArgumentsHandler(Handler):
-    def add_argparse_arguments(self, param, parser, *args, **kwargs):
+    def add_parameter(self, param, runtime, *args, **kwargs):
         if param.type == ArgparseArguments:
-            return True, parser
-        return False, parser
+            return True
+        return False
 
     def bind(self, param, args, children):
         if param.type == ArgparseArguments:
-            value = {k: v for k, v in args.__dict__.items() if k != '_aparse_parameters'}
+            value = {k: v for k, v in args.items() if k != '_aparse_parameters'}
             return True, value
         return False, args
 
-    def preprocess_argparse_parameter(self, param):
+    def preprocess_parameter(self, param):
         if param.type == ArgparseArguments:
             return True, param.replace(argument_type=ArgparseArguments, children=[])
         return False, param
@@ -96,7 +84,7 @@ class SimpleListHandler(Handler):
                 return tp
         return None
 
-    def preprocess_argparse_parameter(self, parameter):
+    def preprocess_parameter(self, parameter):
         if self._list_type(parameter.type) is not None:
             return True, parameter.replace(argument_type=str)
         return False, parameter
@@ -113,7 +101,7 @@ class FromStrHandler(Handler):
     def _does_handle(self, tp: Type):
         return hasattr(tp, 'from_str')
 
-    def preprocess_argparse_parameter(self, parameter):
+    def preprocess_parameter(self, parameter):
         if self._does_handle(parameter.type):
             return True, parameter.replace(argument_type=str)
         return False, parameter
@@ -133,7 +121,7 @@ class ConditionalTypeHandler(Handler):
             return hasattr(tp, '__conditional_map__')
         return False
 
-    def preprocess_argparse_parameter(self, parameter):
+    def preprocess_parameter(self, parameter):
         if self._does_handle(parameter.type):
             return True, parameter.replace(
                 argument_type=str,
@@ -148,7 +136,7 @@ class ConditionalTypeHandler(Handler):
                 key = kwargs[param.argument_name]
                 tp = param.type.__conditional_map__.get(key, None)
                 if tp is not None:
-                    parameter = get_parameters(tp).walk(preprocess_argparse_parameter)
+                    parameter = get_parameters(tp).walk(preprocess_parameter)
                     parameter = parameter.replace(name=param.name, type=tp)
                     if not param.type.__conditional_prefix__:
                         parameter = parameter.replace(_argument_name=(None,))
