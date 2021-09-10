@@ -40,7 +40,7 @@ class ClickRuntime(Runtime):
         self._parameters = parameters
 
 
-def get_command_class(cls=None):
+def _get_command_class(cls=None):
     class AparseClickCommand(cls or click.core.Command):
         runtime = None
 
@@ -57,7 +57,7 @@ def get_command_class(cls=None):
 
 
 def command(name=None, cls=None, before_parse=None, after_parse=None, **kwargs):
-    cls = get_command_class(cls)
+    cls = _get_command_class(cls)
     _wrap = click.command(name=name, cls=cls, **kwargs)
 
     def wrap(fn):
@@ -77,3 +77,23 @@ def command(name=None, cls=None, before_parse=None, after_parse=None, **kwargs):
         return fn
 
     return wrap
+
+
+def _get_group_class(cls=None):
+    class Group(cls or click.core.Group):
+        def command(self, name=None, cls=None, **kwargs):
+            if callable(name):
+                return self.command()(name)
+
+            _wrap = command(name=name, cls=cls, **kwargs)
+
+            def wrap(fn):
+                fn = _wrap(fn)
+                self.add_command(fn)
+                return fn
+            return wrap
+    return Group
+
+
+def group(name=None, cls=None, **attrs):
+    return click.group(name=name, cls=_get_group_class(cls), **attrs)
