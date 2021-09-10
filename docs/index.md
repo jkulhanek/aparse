@@ -378,4 +378,4 @@ Conditional parsing can be implemented with `after_parse` and
 `before_parse` callbacks.
 
 ## License
-[MIT](/LICENSE)
+[MIT](../LICENSE)
