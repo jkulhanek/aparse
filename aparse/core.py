@@ -11,7 +11,7 @@ except(ImportError):
             tp = key[0] if isinstance(key, tuple) else key
             return type(tp)
     Literal = _Literal()
-ArgparseArguments = NewType('ArgparseArguments', Dict[str, Any])
+AllArguments = NewType('AllArguments', Dict[str, Any])
 _empty = object()
 
 

@@ -1,5 +1,5 @@
 from typing import List
-from aparse import add_argparse_arguments, ArgparseArguments, Parameter
+from aparse import add_argparse_arguments, AllArguments, Parameter
 from aparse.utils import get_path
 from aparse import ConditionalType
 from argparse import ArgumentParser
@@ -89,7 +89,7 @@ def test_bind_arguments():
 
 def test_argparse_arguments():
     @add_argparse_arguments()
-    def testfn(args: ArgparseArguments, k: int = 1, m: float = 2.):
+    def testfn(args: AllArguments, k: int = 1, m: float = 2.):
         return args
 
     argparser = ArgumentParser()
@@ -232,7 +232,7 @@ def test_parse_from_str():
 
 def test_argparse_arguments_with_prefix():
     @add_argparse_arguments()
-    def testfn(args: ArgparseArguments, k: int = 1, m: float = 2.):
+    def testfn(args: AllArguments, k: int = 1, m: float = 2.):
         return dict(k=k, m=m)
 
     argparser = ArgumentParser()
@@ -250,7 +250,7 @@ def test_argparse_arguments_with_prefix():
 
 def test_argparse_arguments_with_prefix2():
     @add_argparse_arguments()
-    def testfn(args: ArgparseArguments, k: int = 1, m: float = 2.):
+    def testfn(args: AllArguments, k: int = 1, m: float = 2.):
         return dict(k=k, m=m)
 
     argparser = ArgumentParser()

@@ -1,5 +1,5 @@
 from typing import Type
-from .core import Handler, ArgparseArguments, ParameterWithPath, Runtime, _empty
+from .core import Handler, AllArguments, ParameterWithPath, Runtime, _empty
 from ._lib import register_handler, preprocess_parameter
 from .utils import get_parameters
 from .utils import prefix_parameter, merge_parameter_trees
@@ -57,21 +57,21 @@ class DefaultHandler(Handler):
 
 
 @register_handler
-class ArgparseArgumentsHandler(Handler):
+class AllArgumentsHandler(Handler):
     def add_parameter(self, param, runtime, *args, **kwargs):
-        if param.type == ArgparseArguments:
+        if param.type == AllArguments:
             return True
         return False
 
     def bind(self, param, args, children):
-        if param.type == ArgparseArguments:
+        if param.type == AllArguments:
             value = {k: v for k, v in args.items() if k != '_aparse_parameters'}
             return True, value
         return False, args
 
     def preprocess_parameter(self, param):
-        if param.type == ArgparseArguments:
-            return True, param.replace(argument_type=ArgparseArguments, children=[])
+        if param.type == AllArguments:
+            return True, param.replace(argument_type=AllArguments, children=[])
         return False, param
 
 
@@ -148,7 +148,8 @@ class ConditionalTypeHandler(Handler):
             return result
         return None
 
-    def after_parse(root, argparse_args, kwargs):
+    def after_parse(self, root, argparse_args, kwargs):
         for param in root.enumerate_parameters():
             if ConditionalTypeHandler._does_handle(param.type):
                 pass
+        return kwargs

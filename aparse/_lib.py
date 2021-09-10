@@ -25,8 +25,8 @@ def preprocess_parameter(param: ParameterWithPath, children):
     return param
 
 
-def parse_arguments_manually(args, defaults):
-    kwargs = dict(**defaults)
+def parse_arguments_manually(args=None, defaults=None):
+    kwargs = dict(**defaults) if defaults is not None else dict()
     if args is None:
         # args default to the system args
         args = sys.argv[1:]
@@ -61,6 +61,14 @@ def handle_before_parse(runtime: Runtime, parameters: Parameter, kwargs: Dict[st
     if len(added_params) > 0:
         return merge_parameter_trees(*added_params).walk(preprocess_parameter)
     return None
+
+
+def handle_after_parse(parameters: Parameter, arguments: Dict[str, Any], kwargs: Dict[str, Any], callbacks=None):
+    for ap in [getattr(h, 'after_parse', None) for h in reversed(handlers)] + (callbacks or []):
+        if ap is None:
+            continue
+        kwargs = ap(parameters, arguments, kwargs)
+    return kwargs
 
 
 def set_defaults(parameters: Parameter, defaults: Dict[str, Any]):
