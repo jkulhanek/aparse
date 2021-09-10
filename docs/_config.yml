@@ -1,4 +1,8 @@
-title: "Aparse documentation"
+title: "Aparse"
 remote_theme: pmarsceill/just-the-docs
 color_scheme: "light"
-search_enabled: false
+search_enabled: true
+ga_tracking: UA-133355320-2
+aux_links:
+  "Aparse on GitHub":
+    - "//github.com/jkulhanek/aparse"
