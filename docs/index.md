@@ -4,8 +4,8 @@ title: Introduction
 nav_order: 1
 permalink: /
 ---
-
 # Introduction
+
 [Aparse](https://github.com/jkulhanek/aparse) is a python argparse extension with support for typing.
 It has support for `argparse` and `click`
 libraries. It uses function signatures to automatically register arguments to parsers.
@@ -22,10 +22,13 @@ The following features are currently supported:
 - Callbacks before and after arguments are parsed.
 - Conditional arguments, where the type of arguments depends on the value of another argument.
 
+{: .no_toc }
 
 ## Table of contents
-{:toc}
+{: .no_toc .text-delta }
 
+1. TOC
+{:toc}
 
 ## Why aparse
 **Why not argparse?**
