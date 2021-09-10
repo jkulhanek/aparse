@@ -5,17 +5,6 @@ nav_order: 4
 permalink: /extending
 ---
 # Extending aparse
-
-{: .no_toc }
-
-## Table of contents
-{: .no_toc .text-delta }
-
-1. TOC
-{:toc}
-
----
-
 You can extend the basic handling of the aparse library, e.g., to
 add your own types. Implement your own `aparse.Handler` and register
 it with `aparse.register_handler` decorator.

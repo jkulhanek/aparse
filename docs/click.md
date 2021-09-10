@@ -174,6 +174,58 @@ main()
 ```
 
 ## Conditional parsing
-Conditional parsing can be implemented with `after_parse` and
-`before_parse` callbacks.
+Aparse allows you to condition the argument type based on another argument's
+value. In the following example, based on the '--k' argument value the type for
+parameter k is chosen.
+```python
+# python main.py --k d2 --k-prop-d2 ok
 
+from aparse import click
+
+@dataclass
+class D1:
+    prop_d2: str = 'test'
+
+@dataclass
+class D2:
+    prop_d2: str = 'test-d2'
+
+class DSwitch(ConditionalType):
+    d1: D1
+    d2: D2
+
+@click.command()
+def main(k: DSwitch):
+    # k will an instance of D2 in this example
+    pass
+
+main()
+```
+
+## Conditional parsing without prefix
+Furthermore, you can choose not to include the parameter name in the
+class properties.
+```python
+# python main.py --k d2 --prop-d2 ok
+
+from aparse import click
+
+@dataclass
+class D1:
+    prop_d2: str = 'test'
+
+@dataclass
+class D2:
+    prop_d2: str = 'test-d2'
+
+class DSwitch(ConditionalType, prefix=False):
+    d1: D1
+    d2: D2
+
+@click.command()
+def main(k: DSwitch):
+    # k will an instance of D2 in this example
+    pass
+
+main()
+```

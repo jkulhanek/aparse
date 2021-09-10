@@ -5,6 +5,9 @@ from ._lib import register_handler  # noqa: F401
 from .argparse import add_argparse_arguments  # noqa: F401
 from . import _handlers  # noqa: F401
 
+__all__ = ['Handler', 'Parameter', 'ParameterWithPath', 'Literal',
+           'AllArguments', 'ConditionalType', 'register_handler',
+           'add_argparse_arguments']
 
 __version__ = "develop"
 del _lib

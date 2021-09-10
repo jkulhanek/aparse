@@ -295,6 +295,55 @@ testfn.from_argparse_arguments(args)
 ```
 
 ## Conditional parsing
-Conditional parsing can be implemented with `after_parse` and
-`before_parse` callbacks.
+Aparse allows you to condition the argument type based on another argument's
+value. In the following example, based on the '--k' argument value the type for
+parameter k is chosen.
+```python
+@dataclass
+class D1:
+    prop_d2: str = 'test'
 
+@dataclass
+class D2:
+    prop_d2: str = 'test-d2'
+
+class DSwitch(ConditionalType):
+    d1: D1
+    d2: D2
+
+@add_argparse_arguments
+def testfn(k: DSwitch):
+    return k
+
+argparser = ArgumentParser()
+argparser = testfn.add_argparse_arguments(argparser)
+args = argparser.parse_args(['--k', 'd2', '--k-prop-d2', 'ok'])
+k = testfn.from_argparse_arguments(args)
+# k is an instance of D2 in this case
+```
+
+## Conditional parsing without prefix
+Furthermore, you can choose not to include the parameter name in the
+```python
+@dataclass
+class D1:
+    prop_d2: str = 'test'
+
+@dataclass
+class D2:
+    prop_d2: str = 'test-d2'
+
+class DSwitch(ConditionalType, prefix=False):
+    d1: D1
+    d2: D2
+
+@add_argparse_arguments
+def testfn(k: DSwitch):
+    return k
+
+argparser = ArgumentParser()
+argparser = testfn.add_argparse_arguments(argparser)
+args = argparser.parse_args(['--k', 'd2', '--prop-d2', 'ok'])
+k = testfn.from_argparse_arguments(args)
+# k is an instance of D2 in this case
+```
