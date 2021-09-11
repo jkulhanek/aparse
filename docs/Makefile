@@ -1,5 +1,4 @@
 
-
 api-docs: ../aparse/*
 	PYTHONPATH=../ pdocs as_markdown -e -ov -o api aparse
 	echo -e "---\nlayout: default\ntitle: aparse\nnav_order: 1\npermalink: /api/aparse\n---\n$$(cat api/aparse/index.md)" >api/aparse.md
