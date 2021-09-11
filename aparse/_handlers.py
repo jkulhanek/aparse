@@ -132,8 +132,7 @@ class ConditionalTypeHandler(Handler):
         result = []
         for param in root.enumerate_parameters():
             if self._does_handle(param.type):
-                assert param.argument_name in kwargs
-                key = kwargs[param.argument_name]
+                key = kwargs.get(param.argument_name, param.default)
                 tp = param.type.__conditional_map__.get(key, None)
                 if tp is not None:
                     parameter = get_parameters(tp).walk(preprocess_parameter)
