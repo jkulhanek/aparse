@@ -20,6 +20,7 @@ def command(
     cls=None,
     before_parse=None,
     after_parse=None,
+    soft_defaults=False,
     **kwargs
 )
 ```
@@ -45,7 +46,8 @@ def group(
 
 ```python3
 class ClickRuntime(
-    fn
+    fn,
+    soft_defaults=False
 )
 ```
 
@@ -65,7 +67,7 @@ def add_parameter(
     argument_type,
     required=True,
     help='',
-    default=<object object at 0x7f04c6394f20>,
+    default=<object object at 0x7f3c8d110f50>,
     choices=None
 )
 ```

@@ -1,7 +1,9 @@
+import pytest
 import sys
 from typing import List
+import click as _click
 from aparse import click
-from aparse import ConditionalType, Parameter, AllArguments
+from aparse import ConditionalType, Parameter, AllArguments, Literal
 from dataclasses import dataclass
 
 
@@ -53,6 +55,104 @@ def test_click_required(monkeypatch):
 
     test()
     assert not was_called
+
+
+def test_parse_arguments_update_no_default(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    @_click.option('--k', type=int, default=1)
+    def test(k: int):
+        nonlocal was_called
+        was_called = True
+        assert k == 1
+
+    test()
+    assert was_called
+
+
+def test_parse_arguments_update_different_default_raise_error(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    with pytest.raises(Exception):
+        @click.command()
+        @_click.option('--k', type=int, default=1)
+        def test(k: int = 4):
+            nonlocal was_called
+            was_called = True
+
+        test()
+    assert not was_called
+
+
+def test_parse_arguments_update_different_soft_default(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command(soft_defaults=True)
+    @_click.option('--k', type=int, default=1)
+    def test(k: int = 4):
+        nonlocal was_called
+        was_called = True
+        assert k == 4
+
+    test()
+    assert was_called
+
+
+def test_choices(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--k', 'a'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def test(k: Literal['a', 'b']):
+        nonlocal was_called
+        was_called = True
+        assert k == 'a'
+
+    test()
+    assert test.params[0].type.choices == ['a', 'b']
+    assert was_called
+
+
+def test_choices_update(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--k', 'a'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    @_click.option('--k', type=_click.Choice(['a', 'c']))
+    def test(k: Literal['a', 'b']):
+        nonlocal was_called
+        was_called = True
+        assert k == 'a'
+
+    test()
+    assert test.params[0].type.choices == ['a']
+    assert was_called
+
+
+def test_choices_update2(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--k', 'a'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    @_click.option('--k', type=str)
+    def test(k: Literal['a', 'b']):
+        nonlocal was_called
+        was_called = True
+        assert k == 'a'
+
+    test()
+    assert test.params[0].type.choices == ['a', 'b']
+    assert was_called
 
 
 def test_click_dataclasses(monkeypatch):

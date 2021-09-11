@@ -1,7 +1,7 @@
 from typing import Dict, Set, Any, Optional, Callable
 from functools import partial
 from argparse import ArgumentParser, Namespace
-from .core import Parameter, _DefaultFactory, Runtime
+from .core import Parameter, DefaultFactory, Runtime
 from ._lib import add_parameters as _add_parameters
 from ._lib import preprocess_parameter as _preprocess_parameter
 from ._lib import handle_before_parse as _handle_before_parse
@@ -104,7 +104,7 @@ class ArgparseRuntime(Runtime):
                 return param.replace(children=children)
 
             default = existing_action.default
-            default_factory = default_factory.factory if isinstance(default_factory, _DefaultFactory) else lambda: default
+            default_factory = DefaultFactory.get_factory(default)
             if existing_action.required:
                 default_factory = None
             argument_type = existing_action.type

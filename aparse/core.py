@@ -1,3 +1,5 @@
+import json
+import inspect
 import sys
 import dataclasses
 from typing import Any, NewType, Dict, Union, Callable, List, Tuple, Optional, Type
@@ -5,17 +7,32 @@ try:
     from typing import Literal  # type: ignore
 except(ImportError):
     # Literal polyfill
-    class _Literal:
+    import types
+
+    class _LiteralMeta(type):
         @classmethod
         def __getitem__(cls, key):
-            tp = key[0] if isinstance(key, tuple) else key
-            return type(tp)
-    Literal = _Literal()
+            tp = type(key[0] if isinstance(key, tuple) else key)
+
+            def _make_cls(ns):
+                class Origin:
+                    pass
+
+                origin = Origin()
+                setattr(origin, '_name', 'Literal')
+                ns['__origin__'] = origin
+                ns['__args__'] = key
+                return ns
+
+            return types.new_class('Literal', (tp,), {}, _make_cls)
+
+    class Literal(metaclass=_LiteralMeta):
+        pass
 AllArguments = NewType('AllArguments', Dict[str, Any])
 _empty = object()
 
 
-class _DefaultFactory:
+class DefaultFactory:
     def __init__(self, factory):
         self.factory = factory
 
@@ -27,6 +44,35 @@ class _DefaultFactory:
 
     def __call__(self):
         return self.factory()
+
+    def __eq__(self, other):
+        if not isinstance(other, DefaultFactory):
+            return False
+        return self._get_comp_value(self) == self._get_comp_value(other)
+
+    @staticmethod
+    def _get_comp_value(value):
+        value = value.get_default()
+        if isinstance(value, (int, str, float, bool)):
+            return value
+        return json.dumps(value(), sort_keys=True)
+
+    def __hash__(self):
+        return hash(self._get_comp_value(self))
+
+    def get_default(self):
+        value = self()
+        if isinstance(value, (int, str, float, bool)):
+            return value
+        return self
+
+    @staticmethod
+    def get_factory(value):
+        if isinstance(value, DefaultFactory):
+            return value
+        if value == _empty or value == inspect._empty:
+            return None
+        return DefaultFactory(lambda: value)
 
 
 @dataclasses.dataclass
@@ -87,10 +133,9 @@ class Parameter:
     def default(self):
         if self.default_factory is None:
             return None
-        default = self.default_factory()
-        if isinstance(default, (int, str, float, bool)):
-            return default
-        return _DefaultFactory(self.default_factory)
+        if isinstance(self.default_factory, DefaultFactory):
+            return self.default_factory.get_default()
+        return self.default_factory()
 
     def __str__(self):
         result = f'{self.name} [{self.type}]\n'

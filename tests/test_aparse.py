@@ -1,6 +1,6 @@
+import pytest
 from typing import List
-from aparse import add_argparse_arguments, AllArguments, Parameter
-from aparse.utils import get_path
+from aparse import add_argparse_arguments, AllArguments, Parameter, DefaultFactory, Literal
 from aparse import ConditionalType
 from argparse import ArgumentParser
 from dataclasses import dataclass
@@ -21,6 +21,97 @@ def test_argparse_parse_arguments():
     d = testfn.from_argparse_arguments(args)
     assert d['k'] == 3
     assert d['m'] == 2.
+
+
+def test_argparse_parse_arguments_update_no_default():
+    @add_argparse_arguments()
+    def testfn(k: int, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser.add_argument('--k', type=int, default=1)
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args([])
+
+    assert hasattr(args, 'k')
+    assert hasattr(args, 'm')
+
+    d = testfn.from_argparse_arguments(args)
+    assert d['k'] == 1
+    assert d['m'] == 2.
+
+
+def test_argparse_parse_arguments_update_different_default_raise_error():
+    @add_argparse_arguments()
+    def testfn(k: int = 4, m: float = 2.):
+        return dict(k=k, m=m)
+
+    with pytest.raises(Exception):
+        argparser = ArgumentParser()
+        argparser.add_argument('--k', type=int, default=1)
+        argparser = testfn.add_argparse_arguments(argparser)
+        argparser.parse_args([])
+
+
+def test_argparse_parse_arguments_update_different_soft_default():
+    @add_argparse_arguments()
+    def testfn(k: int = 4, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    argparser.add_argument('--k', type=int, default=1)
+    argparser = testfn.add_argparse_arguments(argparser, soft_defaults=True)
+    args = argparser.parse_args([])
+    d = testfn.from_argparse_arguments(args)
+    assert d['k'] == 4
+
+
+def test_argparse_choices():
+    @add_argparse_arguments()
+    def testfn(k: Literal['a', 'b']):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', 'a'])
+
+    assert argparser._actions[-1].choices == ['a', 'b']
+    assert hasattr(args, 'k')
+
+    k = testfn.from_argparse_arguments(args)
+    assert k == 'a'
+
+
+def test_argparse_choices_update():
+    @add_argparse_arguments()
+    def testfn(k: Literal['a', 'b']):
+        return k
+
+    argparser = ArgumentParser()
+    argparser.add_argument('--k', choices=['a', 'c'], type=str)
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', 'a'])
+    assert argparser._actions[-1].choices == ['a']
+    assert hasattr(args, 'k')
+
+    k = testfn.from_argparse_arguments(args)
+    assert k == 'a'
+
+
+def test_argparse_choices_update2():
+    @add_argparse_arguments()
+    def testfn(k: Literal['a', 'b']):
+        return k
+
+    argparser = ArgumentParser()
+    argparser.add_argument('--k', type=str)
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', 'a'])
+    assert argparser._actions[-1].choices == ['a', 'b']
+    assert hasattr(args, 'k')
+
+    k = testfn.from_argparse_arguments(args)
+    assert k == 'a'
 
 
 def test_hacked_argparse_registered():

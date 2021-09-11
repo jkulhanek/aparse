@@ -18,12 +18,6 @@ None
 * aparse.core
 * [aparse.utils](utils.html)
 
-## Variables
-
-```python3
-Literal
-```
-
 ## Functions
 
     
@@ -181,6 +175,16 @@ def preprocess_parameter(
 ```
 
     
+
+### Literal
+
+```python3
+class Literal(
+    /,
+    *args,
+    **kwargs
+)
+```
 
 ### Parameter
 

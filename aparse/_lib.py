@@ -1,9 +1,9 @@
 import sys
 from typing import List, Dict, Any, Tuple
 import dataclasses
-from .core import Parameter, ParameterWithPath, Handler, Runtime
-from .utils import merge_parameter_trees
-from .utils import ignore_parameters, merge_parameter_defaults
+from .core import Parameter, ParameterWithPath, Handler, Runtime, DefaultFactory
+from .utils import merge_parameter_trees, consolidate_parameter_tree
+from .utils import ignore_parameters
 
 
 handlers: List[Handler] = []
@@ -78,8 +78,7 @@ def set_defaults(parameters: Parameter, defaults: Dict[str, Any]):
         default_factory = param.default_factory
         if param.full_name in defaults:
             default = defaults.pop(param.full_name)
-            default_factory = lambda: default
-
+            default_factory = DefaultFactory.get_factory(default)
         return param.replace(
             children=children,
             default_factory=default_factory)
@@ -97,7 +96,10 @@ def add_parameters(parameters: Parameter, runtime: Runtime,
     default_parameters = runtime.read_defaults(parameters)
     if defaults is not None:
         default_parameters = ignore_parameters(default_parameters, set(defaults.keys()))
-    parameters = merge_parameter_defaults(parameters, default_parameters, soft_defaults=soft_defaults)
+    parameters = merge_parameter_trees(default_parameters, parameters)
+    parameters = consolidate_parameter_tree(parameters, soft_defaults=soft_defaults)
+    # TODO: implement default's type validation!
+    # parameters = merge_parameter_defaults(parameters, default_parameters, soft_defaults=soft_defaults)
 
     for param in parameters.enumerate_parameters():
         for h in handlers:
