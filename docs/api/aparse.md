@@ -1,8 +1,9 @@
 ---
 layout: default
-title: aparse
-nav_order: 1
-permalink: /api/aparse
+title: API
+nav_order: 5
+has_children: true
+permalink: /api
 ---
 # Module aparse
 
@@ -12,10 +13,10 @@ None
 
 ## Sub-modules
 
-* [aparse.argparse](argparse/)
-* [aparse.click](click/)
-* [aparse.core](core/)
-* [aparse.utils](utils/)
+* aparse.argparse
+* [aparse.click](click.html)
+* aparse.core
+* [aparse.utils](utils.html)
 
 ## Variables
 

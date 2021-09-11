@@ -270,6 +270,30 @@ def test_click_groups(monkeypatch):
     assert was_called
 
 
+def test_click_groups2(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', 'test-a', '--a', '3', '--b', 'tk'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.group()
+    def main():
+        pass
+
+    @main.command
+    def testb():
+        pass
+
+    @main.command('test-a')
+    def test(b: str, a: int = 5):
+        nonlocal was_called
+        was_called = True
+        assert b == 'tk'
+        assert a == 3
+
+    main()
+    assert was_called
+
+
 def test_click_groups_late_registration(monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['prg.py', 'test-a', '--a', '3', '--b', 'tk'])
     monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)

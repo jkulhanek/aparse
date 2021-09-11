@@ -1,8 +1,7 @@
 ---
 layout: default
 title: aparse.click
-nav_order: 2
-permalink: /api/aparse.click
+parent: API
 ---
 # Module aparse.click
 
@@ -66,7 +65,7 @@ def add_parameter(
     argument_type,
     required=True,
     help='',
-    default=<object object at 0x7f43bb284f20>,
+    default=<object object at 0x7f04c6394f20>,
     choices=None
 )
 ```

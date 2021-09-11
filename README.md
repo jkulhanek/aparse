@@ -1,7 +1,8 @@
 # Aparse
 ![pypi](https://img.shields.io/pypi/v/aparse.svg)
 ![tests](https://img.shields.io/github/workflow/status/jkulhanek/aparse/run-tests?label=tests)
-![python](https://img.shields.io/badge/python-3.7%2C3.8.%2C3.9-brightgreen)
+![coverage](https://img.shields.io/codecov/c/gh/jkulhanek/aparse)
+![python](https://img.shields.io/badge/python-3.7%2C3.8%2C3.9-blue)
 
 
 Aparse is a python argparse extension with support for typing. It has support for `argparse` and `click`
