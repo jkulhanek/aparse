@@ -23,6 +23,25 @@ def test_argparse_parse_arguments():
     assert d['m'] == 2.
 
 
+def test_argparse_parse_subparsers():
+    @add_argparse_arguments()
+    def testfn(k: int = 1, m: float = 2.):
+        return dict(k=k, m=m)
+
+    argparser = ArgumentParser()
+    sub = argparser.add_subparsers()
+    p = sub.add_parser('test')
+    p = testfn.add_argparse_arguments(p)
+    args = argparser.parse_args(['test', '--k', '3'])
+
+    assert hasattr(args, 'k')
+    assert hasattr(args, 'm')
+
+    d = testfn.from_argparse_arguments(args)
+    assert d['k'] == 3
+    assert d['m'] == 2.
+
+
 def test_argparse_parse_arguments_update_no_default():
     @add_argparse_arguments()
     def testfn(k: int, m: float = 2.):
@@ -389,6 +408,34 @@ def test_argparse_before_parse_callback():
     d = testfn.from_argparse_arguments(args)
     assert 'test' in d
     assert d['test'] == 5
+
+
+def test_argparse_before_parse_callback_subparsers():
+    was_called = False
+
+    def callback(param, parser, kwargs):
+        assert 'k' in kwargs
+        nonlocal was_called
+        was_called = True
+        return Parameter(name='test', type=int, default_factory=lambda: 5)
+
+    @add_argparse_arguments(before_parse=callback)
+    def testfn(k: int = 1, **kwargs):
+        return kwargs
+
+    argparser = ArgumentParser()
+    sub = argparser.add_subparsers()
+    p = sub.add_parser('cm')
+    p = testfn.add_argparse_arguments(p)
+    args = argparser.parse_args(['cm', '--k', '3'])
+
+    assert hasattr(args, 'k')
+    assert hasattr(args, 'test')
+
+    d = testfn.from_argparse_arguments(args)
+    assert 'test' in d
+    assert d['test'] == 5
+    assert was_called
 
 
 def test_argparse_after_parse_callback():

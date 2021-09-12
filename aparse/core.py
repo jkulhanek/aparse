@@ -26,7 +26,7 @@ except(ImportError):
 
             return types.new_class('Literal', (tp,), {}, _make_cls)
 
-    class Literal(metaclass=_LiteralMeta):
+    class Literal(metaclass=_LiteralMeta):  # type: ignore
         pass
 AllArguments = NewType('AllArguments', Dict[str, Any])
 _empty = object()

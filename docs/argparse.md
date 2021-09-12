@@ -77,6 +77,28 @@ args = parser.parse_args()
 instance = Example.from_argparse_arguments(args)
 ```
 
+## Subparsers
+Simply pass subparser into the `add_argparse_arguments` function:
+```python
+# main.py test --arg1 ok --arg2 3
+
+import argparse
+from aparse import add_argparse_arguments
+
+@add_argparse_arguments()
+def example(arg1: str, arg2: int = 5):
+    pass
+
+parser = argparse.ArgumentParser()
+sub = parser.add_subparsers()
+sub_parser = sub.add_parser('test')
+sub_parser = example.add_argparse_arguments(sub_parser)
+args = parser.parse_args()
+
+# Call example with args
+example.from_argparse_arguments(args)
+```
+
 ## Arguments with the same name
 Arguments can be reused if they share the same name.
 If the types are same and none or only one of them has a default parameter
