@@ -42,6 +42,70 @@ def test_click(monkeypatch):
     assert was_called
 
 
+def test_argparse_parse_arguments_bool_true(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--k'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def test(k: bool = True):
+        nonlocal was_called
+        was_called = True
+        assert type(k) == bool
+        assert k
+
+    test()
+    assert was_called
+
+
+def test_argparse_parse_arguments_bool_false(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--no-k'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def test(k: bool = True):
+        nonlocal was_called
+        was_called = True
+        assert type(k) == bool
+        assert not k
+
+    test()
+    assert was_called
+
+
+@pytest.mark.parametrize('tp', [int, str, float])
+def test_click_types(monkeypatch, tp):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--a', '1'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def test(a: tp):
+        nonlocal was_called
+        was_called = True
+        assert a == tp(1)
+
+    test()
+    assert was_called
+
+
+@pytest.mark.parametrize('tp', [bool, int, str, float])
+def test_click_read_defaults_types(tp):
+    from aparse.click import ClickRuntime
+    from aparse.utils import get_parameters
+
+    @_click.option('--k', type=tp, default=tp(1))
+    def test(k: tp):
+        pass
+
+    runtime = ClickRuntime(test)
+    param = runtime.read_defaults(get_parameters(test))
+    assert len(param.children) == 1
+    assert param.children[0].type == tp
+    assert param.children[0].default == tp(1)
+
+
 def test_click_required(monkeypatch):
     monkeypatch.setattr(sys, 'argv', ['prg.py', '--a', '3'])
     monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
@@ -101,6 +165,23 @@ def test_parse_arguments_update_different_soft_default(monkeypatch):
         was_called = True
         assert k == 4
 
+    test()
+    assert was_called
+
+
+def test_parse_arguments_update_change_required(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command(soft_defaults=True)
+    @_click.option('--k', type=int, required=True)
+    def test(k: int = 4):
+        nonlocal was_called
+        was_called = True
+        assert k == 4
+
+    assert not test.params[0].required
     test()
     assert was_called
 

@@ -55,6 +55,8 @@ class ArgparseRuntime(Runtime):
     def add_parameter(self, argument_name, argument_type, required=True,
                       help='', default=_empty, choices=None):
 
+        full_argument_name = argument_name
+        argument_name = argument_name.split('/', 1)[0]
         existing_action = None
         for action in self.parser._actions:
             if action.dest == argument_name:
@@ -77,7 +79,7 @@ class ArgparseRuntime(Runtime):
             self.parser.set_defaults(**{argument_name: default if default != _empty else None})
         else:
             arg_type = argument_type
-            arg_name = argument_name.replace('_', '-')
+            arg_name = full_argument_name.replace('_', '-')
             if arg_type == bool:
                 assert '/' in arg_name
                 true_arg_name, false_arg_name = arg_name.split('/', 2)

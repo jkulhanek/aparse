@@ -13,17 +13,21 @@ def get_path(obj, path, default=_empty, _current_path=None):
         return obj
     curr, *rest = path.split('.')
     _current_path = curr if _current_path is None else f'{_current_path}.{curr}'
-    if hasattr(obj, '__getitem__'):
-        if curr in obj:
-            obj = obj[curr]
-        elif default != _empty:
-            return default
-        else:
-            raise IndexError(f'Could not find path {_current_path}.')
+    was_found = False
+    if isinstance(obj, Parameter):
+        obj = obj.find(curr)
+        was_found = obj is not None
     else:
-        if hasattr(obj, curr):
+        if hasattr(obj, '__getitem__'):
+            if curr in obj:
+                obj = obj[curr]
+                was_found = True
+        if not was_found and hasattr(obj, curr):
             obj = getattr(obj, curr)
-        elif default != _empty:
+            was_found = True
+
+    if not was_found:
+        if default != _empty:
             return default
         else:
             raise IndexError(f'Could not find path {_current_path}.')

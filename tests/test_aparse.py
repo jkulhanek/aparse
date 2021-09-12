@@ -1,5 +1,5 @@
 import pytest
-from typing import List
+from typing import List, Union
 from aparse import add_argparse_arguments, AllArguments, Parameter, DefaultFactory, Literal
 from aparse import ConditionalType
 from argparse import ArgumentParser
@@ -21,6 +21,63 @@ def test_argparse_parse_arguments():
     d = testfn.from_argparse_arguments(args)
     assert d['k'] == 3
     assert d['m'] == 2.
+
+
+def test_argparse_parse_arguments_bool():
+    @add_argparse_arguments()
+    def testfn(k: bool = True):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k'])
+    assert hasattr(args, 'k')
+    assert testfn.from_argparse_arguments(args)
+
+    args = argparser.parse_args(['--no-k'])
+    assert hasattr(args, 'k')
+
+
+def test_argparse_parse_arguments_bool_default():
+    @add_argparse_arguments()
+    def testfn(k=True):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k'])
+    assert hasattr(args, 'k')
+    assert testfn.from_argparse_arguments(args)
+
+    args = argparser.parse_args(['--no-k'])
+    assert hasattr(args, 'k')
+
+
+def test_argparse_parse_arguments_union():
+    @add_argparse_arguments()
+    def testfn(k: Union[bool, int, str, float] = True):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--k', '1'])
+    assert hasattr(args, 'k')
+    assert testfn.from_argparse_arguments(args) == '1'
+
+
+def test_argparse_parse_arguments_bool_use():
+    @add_argparse_arguments()
+    def testfn(use_k: bool):
+        return use_k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--use-k'])
+    assert testfn.from_argparse_arguments(args)
+
+    args = argparser.parse_args(['--no-k'])
+    assert not testfn.from_argparse_arguments(args)
+    assert not testfn.from_argparse_arguments(args)
 
 
 def test_argparse_parse_subparsers():

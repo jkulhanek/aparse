@@ -111,18 +111,6 @@ class Parameter:
                     yield y
         return _enumerate(self, None)
 
-    def __getitem__(self, name):
-        for x in self.children:
-            if x.name == name:
-                return x
-        raise IndexError(f'Element {name} not found')
-
-    def __contains__(self, name):
-        for x in self.children:
-            if x.name == name:
-                return True
-        return False
-
     def find(self, name: str) -> Optional['Parameter']:
         for x in self.children:
             if x.name == name:
@@ -136,12 +124,6 @@ class Parameter:
         if isinstance(self.default_factory, DefaultFactory):
             return self.default_factory.get_default()
         return self.default_factory()
-
-    def __str__(self):
-        result = f'{self.name} [{self.type}]\n'
-        for x in self.children:
-            result += '  ' + str(x).replace('\n', '\n  ')
-        return result.strip('\n ')
 
     def replace(self, **kwargs):
         return dataclasses.replace(self, **kwargs)

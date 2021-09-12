@@ -21,15 +21,10 @@ class DefaultHandler(Handler):
             arg_type = type(param.type.__args__[0])
             choices = param.type.__args__
         elif meta_name == 'Union':
-            tp = set((x for x in param.type.__args__ if not isinstance(None, x)))
-            if str in tp:
-                arg_type = str
-            if int in tp:
-                arg_type = int
-            if float in tp:
-                arg_type = float
-        elif hasattr(param.type, 'from_str') and callable(param.type.from_str):
-            arg_type = str
+            type_priority = [str, float, int, bool]
+            tp = set(param.type.__args__).intersection(type_priority)
+            if len(tp) > 0:
+                arg_type = next(x for x in type_priority if x in tp)
         elif param.type in [int, float, str, bool]:
             arg_type = param.type
         elif isinstance(default, bool):
@@ -45,11 +40,11 @@ class DefaultHandler(Handler):
         argument_name = param.argument_name
         if param.argument_type == bool:
             negative_option = argument_name
-            if negative_option.startswith('use-'):
-                negative_option = negative_option[len('use-'):]
-            argument_name += '/' + f'--no-{negative_option}'
+            if negative_option.startswith('use_'):
+                negative_option = negative_option[len('use_'):]
+            argument_name += '/' + f'no_{negative_option}'
         required = param.default_factory is None
-        runtime.add_parameter(param.argument_name, param.argument_type,
+        runtime.add_parameter(argument_name, param.argument_type,
                               required=required, help=param.help,
                               default=param.default if param.default_factory is not None else _empty,
                               choices=param.choices)

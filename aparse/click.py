@@ -28,7 +28,8 @@ class ClickRuntime(Runtime):
             if existing_action is not None:
                 params.remove(existing_action)
 
-            self.fn = click.option(f'--{argument_name.replace("_", "-")}', type=argument_type,
+            opt_argument_name = '/'.join(f'--{x}' for x in argument_name.replace('_', '-').split('/'))
+            self.fn = click.option(opt_argument_name, type=argument_type,
                                    required=required, default=default if default != _empty else None,
                                    show_default=default != _empty, help=help,
                                    show_choices=choices is not None)(self.fn)
