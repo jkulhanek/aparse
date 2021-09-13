@@ -216,7 +216,7 @@ class Handler:
 
 
 class _ConditionalTypeMeta(type):
-    def __new__(cls, name, bases, ns, prefix=True):
+    def __new__(cls, name, bases, ns, prefix=True, default=None):
         """Create new typed dict class object.
         This method is called when ConditionalType is subclassed,
         or when ConditionalType is instantiated. This way
@@ -234,9 +234,10 @@ class _ConditionalTypeMeta(type):
             annotations.update(base.__dict__.get('__annotations__', {}))
 
         annotations.update(own_annotations)
-        tp = Union.__getitem__(tuple(annotations.values()))
+        tp = Union.__getitem__(tuple(annotations.values()) + (None,))
         setattr(tp, '__conditional_map__', annotations)
         setattr(tp, '__conditional_prefix__', prefix)
+        setattr(tp, '__conditional_default__', default)
         return tp
 
     def __subclasscheck__(cls, other):
@@ -246,7 +247,7 @@ class _ConditionalTypeMeta(type):
     __instancecheck__ = __subclasscheck__
 
 
-def ConditionalType(typename, fields=None, *, prefix: bool = True, **kwargs):
+def ConditionalType(typename, fields=None, *, prefix: bool = True, default=None, **kwargs):
     """ConditionalType allows aparse to condition its choices for a
     specific parameter based on an argument.
     Usage::
@@ -274,7 +275,7 @@ def ConditionalType(typename, fields=None, *, prefix: bool = True, **kwargs):
     except (AttributeError, ValueError):
         pass
 
-    return _ConditionalTypeMeta(typename, (), ns, prefix=prefix)
+    return _ConditionalTypeMeta(typename, (), ns, prefix=prefix, default=default)
 
 
 _ConditionalType = type.__new__(_ConditionalTypeMeta, 'ConditionalType', (), {})

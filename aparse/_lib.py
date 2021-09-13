@@ -126,7 +126,7 @@ def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
             elif parameter.type == dict:
                 value = {p.name: x for p, x in children if p.name is not None}
             else:
-                raise RuntimeError(f'Aggregate type {parameter.type} is not supported')
+                value = parameter.type(**{p.name: x for p, x in children})
         else:
             value = arguments[parameter.argument_name]
             if value == parameter.default:

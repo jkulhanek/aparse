@@ -1,5 +1,5 @@
 from typing import Type
-from .core import Handler, AllArguments, ParameterWithPath, Runtime, _empty
+from .core import Handler, AllArguments, ParameterWithPath, Runtime, _empty, DefaultFactory
 from ._lib import register_handler, preprocess_parameter
 from .utils import get_parameters
 from .utils import prefix_parameter, merge_parameter_trees
@@ -111,15 +111,14 @@ class FromStrHandler(Handler):
 class ConditionalTypeHandler(Handler):
     @staticmethod
     def _does_handle(tp: Type):
-        meta_name = getattr(getattr(tp, '__origin__', None), '_name', None)
-        if meta_name == 'Union':
-            return hasattr(tp, '__conditional_map__')
-        return False
+        return hasattr(tp, '__conditional_map__')
 
     def preprocess_parameter(self, parameter):
         if self._does_handle(parameter.type):
+            default_key = getattr(parameter.type, '__conditional_default__', _empty)
             return True, parameter.replace(
                 argument_type=str,
+                default_factory=DefaultFactory.get_factory(default_key),
                 choices=list(parameter.type.__conditional_map__.keys()))
         return False, parameter
 
@@ -127,7 +126,8 @@ class ConditionalTypeHandler(Handler):
         result = []
         for param in root.enumerate_parameters():
             if self._does_handle(param.type):
-                key = kwargs.get(param.argument_name, param.default)
+                default_key = getattr(param.type, '__conditional_default__', None)
+                key = kwargs.get(param.argument_name, default_key)
                 tp = param.type.__conditional_map__.get(key, None)
                 if tp is not None:
                     parameter = get_parameters(tp).walk(preprocess_parameter)
