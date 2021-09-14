@@ -40,6 +40,7 @@ def ConditionalType(
     fields=None,
     *,
     prefix: bool = True,
+    default=None,
     **kwargs
 )
 ```
@@ -59,6 +60,18 @@ ConditionalType supports two additional equivalent forms:
     Model = ConditionalType('Model', dict(gpt2=GPT2, resnet=ResNet))
 The class syntax is only supported in Python 3.6+, while two other
 syntax forms work for Python 2.7 and 3.2+
+
+    
+### WithArgumentName
+
+```python3
+def WithArgumentName(
+    cls,
+    name=None
+)
+```
+
+    
 
     
 ### add_argparse_arguments
@@ -120,6 +133,7 @@ class Handler(
 * aparse._handlers.AllArgumentsHandler
 * aparse._handlers.SimpleListHandler
 * aparse._handlers.FromStrHandler
+* aparse._handlers.WithArgumentNameHandler
 * aparse._handlers.ConditionalTypeHandler
 
 #### Methods

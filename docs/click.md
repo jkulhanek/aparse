@@ -82,6 +82,22 @@ def main(d1: D1):
 main()
 ```
 
+## Using custom classes as arguments
+Custom classes are expanded as other argparse arguments.
+```python
+# python main.py --d1-test ok
+
+class D1:
+    def __init__(self, test: str):
+        self.test = test
+
+@click.command()
+def main(d1: D1):
+    pass
+
+main()
+```
+
 ## List arguments
 Lists can be used as arguments. In that case, the values are separated by commas.
 ```python

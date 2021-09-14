@@ -41,7 +41,7 @@ def get_parameters(
 def get_path(
     obj,
     path,
-    default=<object object at 0x7f3c8d110f50>,
+    default=<object object at 0x7f41a04bef50>,
     _current_path=None
 )
 ```
@@ -79,5 +79,16 @@ def prefix_parameter(
     parameter,
     prefix,
     container_type=None
+)
+```
+
+    
+
+    
+### unwrap_type
+
+```python3
+def unwrap_type(
+    tp
 )
 ```

@@ -257,6 +257,27 @@ def test_click_dataclasses(monkeypatch):
     assert was_called
 
 
+def test_click_classes(monkeypatch):
+    class D1:
+        def __init__(self, test: str):
+            self.test = test
+
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--test2', '5', '--data1-test', 'ok'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def test_fn(data1: D1, test2: int):
+        nonlocal was_called
+        was_called = True
+        assert test2 == 5
+        assert isinstance(data1, D1)
+        assert data1.test == 'ok'
+
+    test_fn()
+    assert was_called
+
+
 def test_click_nested_dataclasses_2levels(monkeypatch):
     @dataclass
     class D1:

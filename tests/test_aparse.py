@@ -355,6 +355,29 @@ def test_nested_dataclasses_function_call():
     assert data1.test == 'ok'
 
 
+def test_nested_classes_function_call():
+    class D1:
+        def __init__(self, test: str):
+            self.test = test
+
+    @add_argparse_arguments()
+    def test_fn(data1: D1, test2: int):
+        return (data1, test2)
+
+    argparser = ArgumentParser()
+    test_fn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--test2', '5', '--data1-test', 'ok'])
+
+    assert hasattr(args, 'data1_test')
+    assert hasattr(args, 'test2')
+
+    (data1, test2) = test_fn.from_argparse_arguments(args)
+
+    assert test2 == 5
+    assert isinstance(data1, D1)
+    assert data1.test == 'ok'
+
+
 def test_nested_dataclasses_2levels_function_call():
     @dataclass
     class D1:

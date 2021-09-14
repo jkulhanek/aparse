@@ -118,9 +118,12 @@ def get_parameters(obj: Any) -> Parameter:
                     p.annotation,
                     default_factory=default_factory,
                 )
-                if dataclasses.is_dataclass(unwrap_type(p.annotation)):
+                tp = unwrap_type(p.annotation)
+                if dataclasses.is_dataclass(tp):
                     # Hierarchical arguments
-                    param.children.extend(collect_parameters(unwrap_type(p.annotation), param, param.name))
+                    param.children.extend(collect_parameters(tp, param, param.name))
+                elif inspect.isclass(tp):
+                    param.children.extend(collect_parameters(tp, param, param.name))
                 params.append(param)
     root = root.replace(children=params)
     return root

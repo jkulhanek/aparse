@@ -40,6 +40,31 @@ def group(
 
     
 
+    
+### option
+
+```python3
+def option(
+    *param_decls,
+    **attrs
+)
+```
+
+    
+Attaches an option to the command.  All positional arguments are
+
+passed as parameter declarations to :class:`Option`; all keyword
+arguments are forwarded unchanged (except ``cls``).
+This is equivalent to creating an :class:`Option` instance manually
+and attaching it to the :attr:`Command.params` list.
+
+**Parameters:**
+
+| Name | Type | Description | Default |
+|---|---|---|---|
+| cls | None | the option class to instantiate.  This defaults to
+:class:`Option`. | None |
+
 ## Classes
 
 ### ClickRuntime
@@ -67,7 +92,7 @@ def add_parameter(
     argument_type,
     required=True,
     help='',
-    default=<object object at 0x7f3c8d110f50>,
+    default=<object object at 0x7f41a04bef50>,
     choices=None
 )
 ```

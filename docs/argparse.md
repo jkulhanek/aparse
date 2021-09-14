@@ -190,6 +190,22 @@ args = argparser.parse_args(['--test2', '5', '--data1-test', 'ok'])
 d2 = D2.from_argparse_arguments(args)
 ```
 
+## Using custom classes as arguments
+Custom classes are expanded as other argparse arguments.
+```python
+class D1:
+    def __init__(self, test: str):
+        self.test = test
+
+@add_argparse_arguments()
+def test(data1: D1):
+    return data1
+
+argparser = ArgumentParser()
+args = argparser.parse_args(['--data1-test', 'ok'])
+d = test.from_argparse_arguments(args)
+```
+
 ## List arguments
 Lists can be used as arguments. In that case, the values are separated by commas.
 ```python
