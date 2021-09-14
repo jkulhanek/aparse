@@ -3,6 +3,7 @@ import json
 import inspect
 import sys
 import dataclasses
+from collections import OrderedDict
 from typing import Any, NewType, Dict, Union, Callable, List, Tuple, Optional, Type
 try:
     from typing import Literal  # type: ignore
@@ -53,10 +54,17 @@ class DefaultFactory:
 
     @staticmethod
     def _get_comp_value(value):
-        value = value.get_default()
+        if isinstance(value, DefaultFactory):
+            value = value()
         if isinstance(value, (int, str, float, bool)):
-            return value
-        return json.dumps(value(), sort_keys=True)
+            return str(value)
+        if value is None:
+            return 'None'
+        if isinstance(value, (list, tuple, set)):
+            return '[' + ', '.join(sorted(DefaultFactory._get_comp_value(x) for x in value)) + ']'
+        if isinstance(value, (dict, OrderedDict)):
+            return '{' + ', '.join(sorted(f'{k}:{DefaultFactory._get_comp_value(v)}' for k, v in value.items())) + '}'
+        return DefaultFactory._get_comp_value(vars(value))
 
     def __hash__(self):
         return hash(self._get_comp_value(self))

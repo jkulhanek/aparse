@@ -1,6 +1,6 @@
 from typing import Dict, Set, Any, Optional, Callable
 from functools import partial
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, Namespace, Action
 from .core import Parameter, DefaultFactory, Runtime
 from ._lib import add_parameters as _add_parameters
 from ._lib import preprocess_parameter as _preprocess_parameter
@@ -10,6 +10,18 @@ from ._lib import bind_parameters as _bind_parameters
 from .utils import _empty, merge_parameter_trees, prefix_parameter
 from .utils import ignore_parameters, get_parameters as _get_parameters
 from .utils import get_path as _get_path
+
+
+class ActionNoYes(Action):
+    def __init__(self, opt_names, dest, default=True, required=False, help=None):
+        self._option_names = opt_names
+        super(ActionNoYes, self).__init__(opt_names, dest, nargs=0, const=None, default=default, required=required, help=help)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        if option_string == self._option_names[-1]:
+            setattr(namespace, self.dest, False)
+        else:
+            setattr(namespace, self.dest, True)
 
 
 class ArgparseRuntime(Runtime):
@@ -83,10 +95,9 @@ class ArgparseRuntime(Runtime):
             if arg_type == bool:
                 assert '/' in arg_name
                 true_arg_name, false_arg_name = arg_name.split('/', 2)
-                if default != _empty:
-                    self.parser.set_defaults(**{argument_name: default})
-                self.parser.add_argument(f'--{true_arg_name}', dest=argument_name, action='store_true', help=f'{help} [default]' if default == True else help)  # noqa: E712
-                self.parser.add_argument(f'--{false_arg_name}', dest=argument_name, action='store_false', help=f'{help} [default]' if default == False else help)  # noqa: E712
+                self.parser._add_action(ActionNoYes(
+                    ['--' + true_arg_name, '--' + false_arg_name], argument_name,
+                    default=default if default != _empty else None, required=required, help=help))
             else:
                 self.parser.add_argument(f'--{arg_name}', type=arg_type, choices=choices, default=default if default != _empty else None,
                                          required=required,

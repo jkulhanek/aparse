@@ -127,5 +127,4 @@ def test_consolidate_parameter_tree_same_type():
 
     params = merge_parameter_trees(get_parameters(a), get_parameters(b))
     params = consolidate_parameter_tree(params)
-    assert len(params.children) == 1
-    assert params.find('test').default == 'test'
+    assert all(x.default == 'test' for x in params.children)

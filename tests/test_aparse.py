@@ -1,3 +1,4 @@
+import sys
 import pytest
 from typing import List, Union
 from aparse import add_argparse_arguments, AllArguments, Parameter, DefaultFactory, Literal
@@ -58,6 +59,26 @@ def test_argparse_parse_with_argument_name_class():
     assert d.kk == 3
 
 
+def test_argparse_parse_with_argument_name_merge_defaults():
+    @dataclass
+    class D:
+        kk: int = 5
+
+    @add_argparse_arguments()
+    def testfn(d: WithArgumentName(D, 'dd'), dd_kk: int):
+        return d
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args([])
+
+    assert hasattr(args, 'dd_kk')
+
+    d = testfn.from_argparse_arguments(args)
+    assert isinstance(d, D)
+    assert d.kk == 5
+
+
 def test_argparse_parse_arguments_bool():
     @add_argparse_arguments()
     def testfn(k: bool = True):
@@ -86,6 +107,30 @@ def test_argparse_parse_arguments_bool_default():
 
     args = argparser.parse_args(['--no-k'])
     assert hasattr(args, 'k')
+
+
+def test_argparse_parse_arguments_bool_no_default(monkeypatch):
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @add_argparse_arguments()
+    def testfn(k: bool):
+        nonlocal was_called
+        was_called = True
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    with pytest.raises(Exception):
+        args = argparser.parse_args([])
+        testfn.from_argparse_arguments(args)
+
+    assert not was_called
+
+    args = argparser.parse_args(['--k'])
+    assert hasattr(args, 'k')
+    testfn.from_argparse_arguments(args)
+    assert was_called
 
 
 def test_argparse_parse_arguments_union():

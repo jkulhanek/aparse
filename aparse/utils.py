@@ -3,7 +3,7 @@ from typing import Any
 from functools import reduce
 import dataclasses
 import copy
-from .core import Parameter, _empty, DefaultFactory
+from .core import Parameter, _empty, ParameterWithPath, DefaultFactory
 
 
 def unwrap_type(tp):
@@ -159,43 +159,49 @@ def get_parameters(obj: Any) -> Parameter:
 
 
 def consolidate_parameter_tree(parameters: Parameter, soft_defaults: bool = False) -> Parameter:
-    def _merge(param, other):
-        default_factory = param.default_factory
-        choices = param.choices
-        if param.type != other.type:
-            raise Exception(f'Could not merge parameter {param.full_name} with different types: {param.type}, {other.type}')
+    par_map = dict()
 
-        if param.default_factory is not None and other.default_factory is not None and other.default_factory != param.default_factory:
-            if not soft_defaults:
-                raise Exception(f'There are conflicting values for {param.argument_name}, [{other.default}, {param.default}]')
-            else:
-                default_factory = other.default_factory
+    for p in parameters.enumerate_parameters():
+        for c in p.children:
+            c_with_path = ParameterWithPath(c, p)
+            default_factory = c_with_path.default_factory
+            tp = c_with_path.type
+            choices = c_with_path.choices
+            if c_with_path.argument_name in par_map:
+                o_default_factory, o_tp, o_choices = par_map[c_with_path.argument_name]
 
-        if param.default_factory is None and other.default_factory is not None:
-            # Copy default value
-            default_factory = other.default_factory
+                # Merge
+                compared_types = {str, int, float, bool}
+                if tp != o_tp and tp in compared_types and o_tp in compared_types:
+                    raise Exception(f'Could not merge parameter {c_with_path.argument_name} with different types: {tp}, {o_tp}')
 
-        if other.choices is not None or choices is not None:
-            # Update choices in the literal
-            if other.choices is None or choices is None:
-                choices = list(other.choices or []) + list(choices or [])
-            else:
-                choices = sorted(set(other.choices).intersection(set(choices)))
-        return param.replace(default_factory=default_factory, choices=choices)
+                if default_factory is not None and o_default_factory is not None and o_default_factory != default_factory:
+                    if not soft_defaults:
+                        raise Exception(f'There are conflicting values for {c_with_path.argument_name}, [{default_factory}, {o_default_factory}]')
+
+                if default_factory is None and o_default_factory is not None:
+                    # Copy default value
+                    default_factory = o_default_factory
+
+                if o_choices is not None or choices is not None:
+                    # Update choices in the literal
+                    if o_choices is None or choices is None:
+                        choices = list(o_choices or []) + list(choices or [])
+                    else:
+                        choices = sorted(set(o_choices).intersection(set(choices)))
+
+            par_map[c_with_path.argument_name] = (
+                default_factory,
+                tp,
+                choices
+            )
 
     def _walk(param, children):
-        new_children = []
-        children_map = dict()
-        for c in children:
-            if c.name not in children_map:
-                children_map[c.name] = len(new_children)
-                new_children.append(c)
-                continue
+        if param.argument_name in par_map:
+            default_factory, _, choices = par_map[param.argument_name]
+            param = param.replace(default_factory=default_factory, choices=choices)
 
-            first_c_i = children_map[c.name]
-            new_children[first_c_i] = _merge(new_children[first_c_i], c)
-
-        return param.replace(children=new_children)
+        return param.replace(children=children)
     return parameters.walk(_walk)
 
 
