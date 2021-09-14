@@ -1,5 +1,6 @@
 import typing
 import json
+import copy
 import inspect
 import sys
 import dataclasses
@@ -295,3 +296,37 @@ def WithArgumentName(cls, name=None):
     new_type = typing.NewType('WithArgumentName', cls)
     setattr(new_type, '__aparse_argname__', name)
     return new_type
+
+
+def _forward_parameters(fn, outer_args, outer_kwargs, skip_first=False):
+    def _fn(*args, **kwargs):
+        kwargs = dict(**kwargs)
+        kwargs.update(outer_kwargs)
+        fn(*outer_args, *args, **kwargs)
+
+    signature = inspect.signature(fn)
+    output_params = []
+    num_args = len(outer_args)
+    for p, param in signature.parameters.items():
+        if (param.kind == inspect._POSITIONAL_ONLY or param.kind == inspect._POSITIONAL_OR_KEYWORD) \
+                and num_args > 0 and not skip_first:
+            num_args -= 1
+        elif param.name not in outer_kwargs:
+            output_params.append(param)
+        skip_first = False
+    signature = inspect.Signature(output_params)
+    setattr(_fn, '__signature__', signature)
+    return _fn
+
+
+def ForwardParameters(fn, *args, **kwargs):
+    if inspect.isclass(fn):
+        class WithDefaults(fn):
+            pass
+
+        init = getattr(fn, '__init__')
+        init = _forward_parameters(init, args, kwargs, True)
+        setattr(WithDefaults, '__init__', init)
+        return WithDefaults
+    else:
+        return _forward_parameters(fn, args, kwargs)
