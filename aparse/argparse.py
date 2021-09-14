@@ -160,7 +160,7 @@ def _bind_argparse_arguments(
         parameters = parameters.walk(lambda x, children:
                                      x.replace(children=children) if x.full_name not in ignore else None)
 
-    kwargs = _bind_parameters(parameters, args_dict)
+    kwargs, _ = _bind_parameters(parameters, args_dict)
     if after_parse is not None:
         kwargs = after_parse(parameters, args_dict, kwargs)
     return kwargs

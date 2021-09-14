@@ -110,7 +110,12 @@ def add_parameters(parameters: Parameter, runtime: Runtime,
 
 
 def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
+    unknown_kwargs = dict(**arguments)
+
     def bind(parameter: ParameterWithPath, children: List[Tuple[Parameter, Any]]):
+        if parameter.argument_name in unknown_kwargs:
+            del unknown_kwargs[parameter.argument_name]
+
         was_handled = False
         value = arguments
         for h in handlers:
@@ -139,4 +144,4 @@ def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
                         break
         return parameter, value
     _, kwargs = parameters.walk(bind)
-    return kwargs
+    return kwargs, unknown_kwargs

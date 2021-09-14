@@ -97,8 +97,9 @@ def _get_command_class(cls=None):
 
         def invoke(self, ctx):
             kwargs = ctx.params
-            kwargs = _bind_parameters(self.runtime._parameters, kwargs)
+            kwargs, unknown_kwargs = _bind_parameters(self.runtime._parameters, kwargs)
             kwargs = _handle_after_parse(self.runtime._parameters, ctx.params, kwargs, self.runtime._after_parse_callbacks)
+            kwargs.update(unknown_kwargs)
             ctx.params = kwargs
             return super().invoke(ctx)
     return AparseClickCommand

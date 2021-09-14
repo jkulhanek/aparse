@@ -87,6 +87,9 @@ class SimpleListHandler(Handler):
     def parse_value(self, parameter, value):
         list_type = self._list_type(parameter.type)
         if list_type is not None and isinstance(value, str):
+            if value.startswith('['):
+                assert value.endswith(']')
+                value = value[1:-1]
             return True, list(map(list_type, value.split(',')))
         return False, value
 
