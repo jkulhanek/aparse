@@ -6,6 +6,12 @@ import copy
 from .core import Parameter, _empty, DefaultFactory
 
 
+def unwrap_type(tp):
+    if hasattr(tp, '__supertype__'):
+        return tp.__supertype__
+    return tp
+
+
 def get_path(obj, path, default=_empty, _current_path=None):
     if obj == _empty:
         raise IndexError(f'Could not find path {_current_path}.')
@@ -92,8 +98,8 @@ def get_parameters(obj: Any) -> Parameter:
 
                 param = Parameter(p.name, p.annotation, default_factory=default_factory)
                 generated.add(full_name)
-                if dataclasses.is_dataclass(p.annotation):
-                    param.children.extend(collect_parameters(p.annotation, param, full_name))
+                if dataclasses.is_dataclass(unwrap_type(p.annotation)):
+                    param.children.extend(collect_parameters(unwrap_type(p.annotation), param, full_name))
                 yield param
         if calls_parent:
             for p in collect_parameters(base, parent, parent_name):
@@ -112,9 +118,9 @@ def get_parameters(obj: Any) -> Parameter:
                     p.annotation,
                     default_factory=default_factory,
                 )
-                if dataclasses.is_dataclass(p.annotation):
+                if dataclasses.is_dataclass(unwrap_type(p.annotation)):
                     # Hierarchical arguments
-                    param.children.extend(collect_parameters(p.annotation, param, param.name))
+                    param.children.extend(collect_parameters(unwrap_type(p.annotation), param, param.name))
                 params.append(param)
     root = root.replace(children=params)
     return root

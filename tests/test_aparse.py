@@ -1,7 +1,7 @@
 import pytest
 from typing import List, Union
 from aparse import add_argparse_arguments, AllArguments, Parameter, DefaultFactory, Literal
-from aparse import ConditionalType
+from aparse import ConditionalType, WithArgumentName
 from argparse import ArgumentParser
 from dataclasses import dataclass
 
@@ -21,6 +21,41 @@ def test_argparse_parse_arguments():
     d = testfn.from_argparse_arguments(args)
     assert d['k'] == 3
     assert d['m'] == 2.
+
+
+def test_argparse_parse_with_argument_name_single():
+    @add_argparse_arguments()
+    def testfn(k: WithArgumentName(int, 'kk') = 1):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--kk', '3'])
+
+    assert hasattr(args, 'kk')
+
+    d = testfn.from_argparse_arguments(args)
+    assert d == 3
+
+
+def test_argparse_parse_with_argument_name_class():
+    @dataclass
+    class D:
+        kk: int
+
+    @add_argparse_arguments()
+    def testfn(d: WithArgumentName(D, 'dd')):
+        return d
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--dd-kk', '3'])
+
+    assert hasattr(args, 'dd_kk')
+
+    d = testfn.from_argparse_arguments(args)
+    assert isinstance(d, D)
+    assert d.kk == 3
 
 
 def test_argparse_parse_arguments_bool():

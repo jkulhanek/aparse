@@ -1,3 +1,4 @@
+import typing
 import json
 import inspect
 import sys
@@ -280,3 +281,9 @@ def ConditionalType(typename, fields=None, *, prefix: bool = True, default=None,
 
 _ConditionalType = type.__new__(_ConditionalTypeMeta, 'ConditionalType', (), {})
 setattr(ConditionalType, '__mro_entries__', lambda bases: (_ConditionalType,))
+
+
+def WithArgumentName(cls, name=None):
+    new_type = typing.NewType('WithArgumentName', cls)
+    setattr(new_type, '__aparse_argname__', name)
+    return new_type

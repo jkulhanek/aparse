@@ -11,6 +11,9 @@ from aparse.utils import merge_parameter_trees
 # from click import *  # noqa: F403, F401
 
 
+option = click.option  # noqa: F401
+
+
 class ClickRuntime(Runtime):
     def __init__(self, fn, soft_defaults=False):
         self.fn = fn

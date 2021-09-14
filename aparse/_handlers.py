@@ -108,6 +108,18 @@ class FromStrHandler(Handler):
 
 
 @register_handler
+class WithArgumentNameHandler(Handler):
+    def _does_handle(self, tp: Type):
+        return hasattr(tp, '__aparse_argname__')
+
+    def preprocess_parameter(self, parameter):
+        if self._does_handle(parameter.type):
+            tp = parameter.type.__supertype__
+            return False, parameter.replace(type=tp, _argument_name=(parameter.type.__aparse_argname__,))
+        return False, parameter
+
+
+@register_handler
 class ConditionalTypeHandler(Handler):
     @staticmethod
     def _does_handle(tp: Type):
