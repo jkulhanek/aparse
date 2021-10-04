@@ -57,6 +57,7 @@ class ArgparseRuntime(Runtime):
             new_parameters = _handle_before_parse(self, old_params, kwargs, callbacks)
             if new_parameters is not None:
                 self.add_parameters(new_parameters)
+            setattr(parser, '_aparse_parameters', merge_parameter_trees(old_params, new_parameters))
             result = super_parse_known_args(args, namespace)
             setattr(result[0], '_aparse_parameters', getattr(parser, '_aparse_parameters', None))
             return result

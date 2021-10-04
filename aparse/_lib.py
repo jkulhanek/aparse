@@ -1,7 +1,7 @@
 import sys
 from typing import List, Dict, Any, Tuple
 import dataclasses
-from .core import Parameter, ParameterWithPath, Handler, Runtime, DefaultFactory
+from .core import Parameter, ParameterWithPath, Handler, Runtime, DefaultFactory, _empty
 from .utils import merge_parameter_trees, consolidate_parameter_tree
 from .utils import ignore_parameters
 
@@ -126,22 +126,23 @@ def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
             return parameter, value
 
         if len(children) > 0 or parameter.name is None:
-            if dataclasses.is_dataclass(parameter.type):
-                value = parameter.type(**{p.name: x for p, x in children})
-            elif parameter.type == dict:
-                value = {p.name: x for p, x in children if p.name is not None}
+            dict_vals = {p.name: x for p, x in children if p.name is not None and x != _empty}
+            if parameter.type == dict:
+                value = dict_vals
             else:
-                value = parameter.type(**{p.name: x for p, x in children})
+                value = parameter.type(**dict_vals)
         else:
-            value = arguments[parameter.argument_name]
-            if value == parameter.default:
-                value = parameter.default_factory()
-            else:
-                was_handled = False
-                for handler in handlers:
-                    was_handled, value = handler.parse_value(parameter, value)
-                    if was_handled:
-                        break
+            value = parameter.default_factory() if parameter.default_factory is not None else _empty
+            if parameter.argument_name in arguments:
+                value = arguments[parameter.argument_name]
+                if value == parameter.default:
+                    value = parameter.default_factory()
+                else:
+                    was_handled = False
+                    for handler in handlers:
+                        was_handled, value = handler.parse_value(parameter, value)
+                        if was_handled:
+                            break
         return parameter, value
     _, kwargs = parameters.walk(bind)
     return kwargs, unknown_kwargs

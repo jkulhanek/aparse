@@ -2,7 +2,7 @@ import pytest
 import sys
 from typing import List
 import click as _click
-from aparse import click
+from aparse import click, FunctionConditionalType
 from aparse import ConditionalType, Parameter, AllArguments, Literal
 from dataclasses import dataclass
 
@@ -514,4 +514,54 @@ def test_click_groups_late_registration(monkeypatch):
 
     main.add_command(test)
     main()
+    assert was_called
+
+
+def test_click_function_conditional_matching(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--r', '2', '--k-prop-d2', 'ok'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @dataclass
+    class D1:
+        prop_d2: str = 'test'
+
+    @dataclass
+    class D2:
+        prop_d2: str = 'test-d2'
+
+    FSwitch = FunctionConditionalType([
+        (lambda kwargs: (kwargs.get('r', None) == '2'), D2),
+        (lambda kwargs: True, D1)])
+
+    @click.command()
+    def testfn(k: FSwitch, r: str):
+        nonlocal was_called
+        was_called = True
+        assert isinstance(k, D2)
+        assert k.prop_d2 == 'ok'
+
+    testfn()
+    assert was_called
+
+
+def test_click_function_conditional_matching_no_match(monkeypatch):
+    monkeypatch.setattr(sys, 'argv', ['prg.py'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @dataclass
+    class D1:
+        prop_d2: str = 'test'
+
+    FSwitch = FunctionConditionalType([
+        (lambda kwargs: False, D1)])
+
+    @click.command()
+    def testfn(k: FSwitch = None):
+        nonlocal was_called
+        was_called = True
+        assert k is None
+
+    testfn()
     assert was_called

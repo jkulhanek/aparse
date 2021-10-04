@@ -153,6 +153,51 @@ class ConditionalTypeHandler(Handler):
 
 
 @register_handler
+class FunctionConditionalTypeHandler(Handler):
+    @staticmethod
+    def _does_handle(tp: Type):
+        return hasattr(tp, '__conditional_fmap__')
+
+    def preprocess_parameter(self, parameter):
+        if self._does_handle(parameter.type):
+            return True, parameter
+        return False, parameter
+
+    def _get_parameter(self, param, tp):
+        parameter = get_parameters(tp).walk(preprocess_parameter)
+        parameter = parameter.replace(name=param.name, type=tp)
+        if not param.type.__conditional_prefix__:
+            parameter = parameter.replace(_argument_name=(None,))
+        if param.parent is not None and param.parent.full_name is not None:
+            parameter = prefix_parameter(parameter, param.parent.full_name)
+        return parameter
+
+    def before_parse(self, root, parser, kwargs):
+        result = []
+        for param in root.enumerate_parameters():
+            if self._does_handle(param.type):
+                tp = None
+                for fn, _tp in param.type.__conditional_fmap__:
+                    if fn(kwargs):
+                        tp = _tp
+                        break
+                result.append(param.replace(
+                    type=tp))
+                if tp is not None:
+                    result.append(self._get_parameter(param, tp))
+        if len(result) > 0:
+            result = merge_parameter_trees(*result)
+            return result
+        return None
+
+    def after_parse(self, root, argparse_args, kwargs):
+        for param in root.enumerate_parameters():
+            if self._does_handle(param.type):
+                pass
+        return kwargs
+
+
+@register_handler
 class WithArgumentNameHandler(Handler):
     def _does_handle(self, tp: Type):
         return hasattr(tp, '__aparse_argname__')

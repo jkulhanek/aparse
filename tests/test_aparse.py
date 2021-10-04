@@ -2,7 +2,7 @@ import sys
 import pytest
 from typing import List, Union
 from aparse import add_argparse_arguments, AllArguments, Parameter, DefaultFactory, Literal
-from aparse import ConditionalType, WithArgumentName
+from aparse import ConditionalType, WithArgumentName, FunctionConditionalType
 from argparse import ArgumentParser
 from dataclasses import dataclass
 
@@ -642,6 +642,51 @@ def test_argparse_conditional_matching():
     k = testfn.from_argparse_arguments(args)
     assert isinstance(k, D2)
     assert k.prop_d2 == 'ok'
+
+
+def test_argparse_function_conditional_matching():
+    @dataclass
+    class D1:
+        prop_d2: str = 'test'
+
+    @dataclass
+    class D2:
+        prop_d2: str = 'test-d2'
+
+    FSwitch = FunctionConditionalType([
+        (lambda kwargs: (kwargs.get('r', None) == '2'), D2),
+        (lambda kwargs: True, D1)])
+
+    @add_argparse_arguments
+    def testfn(k: FSwitch, r: str):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args(['--r', '2', '--k-prop-d2', 'ok'])
+
+    k = testfn.from_argparse_arguments(args)
+    assert isinstance(k, D2)
+    assert k.prop_d2 == 'ok'
+
+
+def test_argparse_function_conditional_matching_no_match():
+    @dataclass
+    class D1:
+        prop_d2: str = 'test'
+
+    FSwitch = FunctionConditionalType([
+        (lambda kwargs: False, D1)])
+
+    @add_argparse_arguments
+    def testfn(k: FSwitch = None):
+        return k
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args([])
+    k = testfn.from_argparse_arguments(args)
+    assert k is None
 
 
 def test_argparse_conditional_matching_no_prefix():
