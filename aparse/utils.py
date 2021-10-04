@@ -90,7 +90,9 @@ def get_parameters(obj: Any) -> Parameter:
                     calls_parent = True
             if p.kind == inspect.Parameter.KEYWORD_ONLY or p.kind == inspect.Parameter.POSITIONAL_OR_KEYWORD:
                 full_name = f'{parent_name}.{p.name}' if parent_name is not None else p.name
-                assert full_name not in generated, f'{full_name} was already generated'
+                if full_name in generated:
+                    continue
+                # assert full_name not in generated, f'{full_name} was already generated'
                 if dataclasses.is_dataclass(cls) and isinstance(p.default, dataclasses._HAS_DEFAULT_FACTORY_CLASS):
                     default_factory = DefaultFactory(cls.__dataclass_fields__[p.name].default_factory)
                 else:

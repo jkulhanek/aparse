@@ -7,7 +7,7 @@ from aparse._lib import parse_arguments_manually as _parse_arguments_manually
 from aparse._lib import bind_parameters as _bind_parameters
 from aparse._lib import handle_after_parse as _handle_after_parse
 from aparse.utils import _empty, get_parameters as _get_parameters
-from aparse.utils import merge_parameter_trees
+from aparse.utils import merge_parameter_trees, ignore_parameters
 # from click import *  # noqa: F403, F401
 
 
@@ -105,12 +105,14 @@ def _get_command_class(cls=None):
     return AparseClickCommand
 
 
-def command(name=None, cls=None, before_parse=None, after_parse=None, soft_defaults=False, **kwargs):
+def command(name=None, cls=None, before_parse=None, after_parse=None, soft_defaults=False, ignore=None, **kwargs):
     cls = _get_command_class(cls)
     _wrap = click.command(name=name, cls=cls, **kwargs)
 
     def wrap(fn):
         root_param = _get_parameters(fn).walk(_preprocess_parameter)
+        if ignore is not None:
+            root_param = ignore_parameters(root_param, ignore)
         runtime = ClickRuntime(fn, soft_defaults=soft_defaults)
         cls.runtime = runtime
         if after_parse is not None:
@@ -119,6 +121,8 @@ def command(name=None, cls=None, before_parse=None, after_parse=None, soft_defau
         kwargs = _parse_arguments_manually()
         new_param = _handle_before_parse(runtime, root_param, kwargs, [before_parse])
         if new_param is not None:
+            if ignore is not None:
+                new_param = ignore_parameters(new_param, ignore)
             runtime.add_parameters(new_param)
 
         fn = runtime.fn
