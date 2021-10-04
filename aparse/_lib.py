@@ -109,13 +109,35 @@ def add_parameters(parameters: Parameter, runtime: Runtime,
             raise RuntimeError('There was no handler registered for adding arguments')
 
 
+def consolidate_parameter_tree_with_path(parameters: Parameter):
+    parameters_with_paths = dict()
+    new_par_map = dict()
+    for p in parameters.enumerate_parameters():
+        if p.type is not None:
+            parameters_with_paths[p.full_name] = p
+
+    def _call(p, children):
+        if p.full_name not in new_par_map:
+            p2 = parameters_with_paths[p.full_name].replace(children=children)
+            new_par_map[p.full_name] = p2
+            return p2
+        else:
+            old_p = new_par_map[p.full_name]
+            old_children_names = set(ParameterWithPath(x, old_p).full_name for x in old_p.children)
+            for c in children:
+                c2 = ParameterWithPath(c, new_par_map[p.full_name])
+                if c2.full_name not in old_children_names:
+                    old_p.children.insert(0, c)
+    return parameters.walk(_call, reverse=True)
+
+
 def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
     unknown_kwargs = dict(**arguments)
+    for p in parameters.enumerate_parameters():
+        if p.argument_name in unknown_kwargs:
+            del unknown_kwargs[p.argument_name]
 
     def bind(parameter: ParameterWithPath, children: List[Tuple[Parameter, Any]]):
-        if parameter.argument_name in unknown_kwargs:
-            del unknown_kwargs[parameter.argument_name]
-
         was_handled = False
         value = arguments
         for h in handlers:
@@ -144,5 +166,6 @@ def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
                         if was_handled:
                             break
         return parameter, value
+    parameters = consolidate_parameter_tree_with_path(parameters)
     _, kwargs = parameters.walk(bind)
     return kwargs, unknown_kwargs

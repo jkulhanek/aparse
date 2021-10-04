@@ -96,16 +96,21 @@ class Parameter:
     argument_type: Optional[Any] = None
     _argument_name: Optional[Tuple[str]] = None
 
-    def walk(self, fn: Callable[['ParameterWithPath', List[Any]], Any]):
+    def walk(self, fn: Callable[['ParameterWithPath', List[Any]], Any], reverse: bool = False):
         def _walk(e, parent):
             e = ParameterWithPath(e, parent)
             new_children = []
-            for p in e.children:
+            children = e.children
+            if reverse:
+                children = reversed(children)
+            for p in children:
                 result = _walk(p, e)
                 if result is not None:
                     if isinstance(result, ParameterWithPath):
                         result = result.parameter
                     new_children.append(result)
+            if reverse:
+                new_children = list(reversed(new_children))
             return fn(e, children=new_children)
         result = _walk(self, None)
         if isinstance(result, ParameterWithPath):
