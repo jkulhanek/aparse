@@ -298,8 +298,8 @@ def WithArgumentName(cls, name=None):
     return new_type
 
 
-def FunctionConditionalType(switch: List[Tuple[Callable[[Dict[str, str]], bool], Type]], prefix: bool = True):
-    tp = typing.NewType('FunctionConditionalType', List[Tuple[Callable[[Dict[str, str]], bool], Type]])
+def FunctionConditionalType(switch: Callable[[Dict[str, str]], Type], prefix: bool = True):
+    tp = typing.NewType('FunctionConditionalType', Callable[[Dict[str, str]], Type])
     setattr(tp, '__conditional_fmap__', switch)
     setattr(tp, '__conditional_prefix__', prefix)
     return tp

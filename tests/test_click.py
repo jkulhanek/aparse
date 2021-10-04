@@ -530,9 +530,7 @@ def test_click_function_conditional_matching(monkeypatch):
     class D2:
         prop_d2: str = 'test-d2'
 
-    FSwitch = FunctionConditionalType([
-        (lambda kwargs: (kwargs.get('r', None) == '2'), D2),
-        (lambda kwargs: True, D1)])
+    FSwitch = FunctionConditionalType(lambda kwargs: D2 if (kwargs.get('r', None) == '2') else D1)
 
     @click.command()
     def testfn(k: FSwitch, r: str):
@@ -550,12 +548,7 @@ def test_click_function_conditional_matching_no_match(monkeypatch):
     monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
     was_called = False
 
-    @dataclass
-    class D1:
-        prop_d2: str = 'test'
-
-    FSwitch = FunctionConditionalType([
-        (lambda kwargs: False, D1)])
+    FSwitch = FunctionConditionalType(lambda kwargs: None)
 
     @click.command()
     def testfn(k: FSwitch = None):

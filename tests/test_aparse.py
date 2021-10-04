@@ -653,9 +653,7 @@ def test_argparse_function_conditional_matching():
     class D2:
         prop_d2: str = 'test-d2'
 
-    FSwitch = FunctionConditionalType([
-        (lambda kwargs: (kwargs.get('r', None) == '2'), D2),
-        (lambda kwargs: True, D1)])
+    FSwitch = FunctionConditionalType(lambda kwargs: D2 if (kwargs.get('r', None) == '2') else D1)
 
     @add_argparse_arguments
     def testfn(k: FSwitch, r: str):
@@ -671,12 +669,7 @@ def test_argparse_function_conditional_matching():
 
 
 def test_argparse_function_conditional_matching_no_match():
-    @dataclass
-    class D1:
-        prop_d2: str = 'test'
-
-    FSwitch = FunctionConditionalType([
-        (lambda kwargs: False, D1)])
+    FSwitch = FunctionConditionalType(lambda kwargs: None)
 
     @add_argparse_arguments
     def testfn(k: FSwitch = None):

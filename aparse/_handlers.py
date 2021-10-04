@@ -176,11 +176,7 @@ class FunctionConditionalTypeHandler(Handler):
         result = []
         for param in root.enumerate_parameters():
             if self._does_handle(param.type):
-                tp = None
-                for fn, _tp in param.type.__conditional_fmap__:
-                    if fn(kwargs):
-                        tp = _tp
-                        break
+                tp = param.type.__conditional_fmap__(kwargs)
                 result.append(param.replace(
                     type=tp))
                 if tp is not None:
