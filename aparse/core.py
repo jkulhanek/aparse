@@ -90,7 +90,7 @@ class Parameter:
     name: Optional[str]
     type: Optional[Type]
     help: str = ''
-    children: List['Parameter'] = dataclasses.field(default_factory=list)
+    children: List['Parameter'] = dataclasses.field(default_factory=list, repr=False)
     default_factory: Optional[Callable[[], Any]] = None
     choices: Optional[List[Any]] = None
     argument_type: Optional[Any] = None
@@ -147,7 +147,7 @@ class Parameter:
 @dataclasses.dataclass
 class ParameterWithPath:
     parameter: Parameter
-    parent: Optional['ParameterWithPath'] = None
+    parent: Optional['ParameterWithPath'] = dataclasses.field(repr=False, default=None)
 
     @property
     def name(self):

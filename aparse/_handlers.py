@@ -1,4 +1,5 @@
 from typing import Type
+import dataclasses
 from .core import Handler, AllArguments, ParameterWithPath, Runtime, _empty, DefaultFactory
 from ._lib import register_handler, preprocess_parameter
 from .utils import get_parameters
@@ -8,7 +9,7 @@ from .utils import prefix_parameter, merge_parameter_trees
 @register_handler
 class DefaultHandler(Handler):
     def preprocess_parameter(self, param: ParameterWithPath):
-        if len(param.children) > 0:
+        if len(param.children) > 0 or dataclasses.is_dataclass(param.type):
             return True, param.parameter
         if param.type is None:
             return True, None
@@ -177,8 +178,6 @@ class FunctionConditionalTypeHandler(Handler):
         for param in root.enumerate_parameters():
             if self._does_handle(param.type):
                 tp = param.type.__conditional_fmap__(kwargs)
-                result.append(param.replace(
-                    type=tp))
                 if tp is not None:
                     result.append(self._get_parameter(param, tp))
         if len(result) > 0:

@@ -3,7 +3,7 @@ import sys
 from typing import List
 import click as _click
 from aparse import click, FunctionConditionalType
-from aparse import ConditionalType, Parameter, AllArguments, Literal
+from aparse import ConditionalType, Parameter, AllArguments, Literal, WithArgumentName
 from dataclasses import dataclass
 
 
@@ -555,6 +555,54 @@ def test_click_function_conditional_matching_no_match(monkeypatch):
         nonlocal was_called
         was_called = True
         assert k is None
+
+    testfn()
+    assert was_called
+
+
+def test_special_case_1(monkeypatch):
+    @dataclass
+    class TestClass:
+        pass
+
+    FClass = FunctionConditionalType(lambda *_, **_k: TestClass, False)
+    monkeypatch.setattr(sys, 'argv', ['prg.py'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def testfn(k: FClass):
+        nonlocal was_called
+        was_called = True
+        assert k is not None
+        assert isinstance(k, TestClass)
+
+    testfn()
+    assert was_called
+
+
+def test_special_case_2(monkeypatch):
+    @dataclass
+    class TestClass:
+        pass
+
+    FClass = FunctionConditionalType(lambda *_, **_k: TestClass, False)
+
+    @dataclass
+    class TestClass2:
+        c: FClass
+
+    monkeypatch.setattr(sys, 'argv', ['prg.py'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def testfn(k: WithArgumentName(TestClass2)):
+        nonlocal was_called
+        was_called = True
+        assert k is not None
+        assert k.c is not None
+        assert isinstance(k.c, TestClass)
 
     testfn()
     assert was_called

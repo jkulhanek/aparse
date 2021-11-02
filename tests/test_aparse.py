@@ -59,6 +59,23 @@ def test_argparse_parse_with_argument_name_class():
     assert d.kk == 3
 
 
+def test_argparse_parse_with_empty_dataclass():
+    @dataclass
+    class D:
+        pass
+
+    @add_argparse_arguments()
+    def testfn(d: D):
+        return d
+
+    argparser = ArgumentParser()
+    argparser = testfn.add_argparse_arguments(argparser)
+    args = argparser.parse_args([])
+
+    d = testfn.from_argparse_arguments(args)
+    assert isinstance(d, D)
+
+
 def test_argparse_parse_with_argument_name_merge_defaults():
     @dataclass
     class D:

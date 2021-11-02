@@ -147,7 +147,7 @@ def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
         if was_handled:
             return parameter, value
 
-        if len(children) > 0 or parameter.name is None:
+        if len(children) > 0 or parameter.name is None or dataclasses.is_dataclass(parameter.type):
             dict_vals = {p.name: x for p, x in children if p.name is not None and x != _empty}
             if parameter.type == dict:
                 value = dict_vals
