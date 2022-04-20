@@ -152,7 +152,10 @@ def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
             if parameter.type == dict:
                 value = dict_vals
             else:
-                value = parameter.type(**dict_vals)
+                if parameter.default_factory is None:
+                    value = parameter.type(**dict_vals)
+                else:
+                    value = dataclasses.replace(parameter.default_factory(), **dict_vals)
         else:
             value = parameter.default_factory() if parameter.default_factory is not None else _empty
             if parameter.argument_name in arguments:
