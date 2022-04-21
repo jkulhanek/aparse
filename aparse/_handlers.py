@@ -9,7 +9,7 @@ from .utils import prefix_parameter, merge_parameter_trees
 @register_handler
 class DefaultHandler(Handler):
     def preprocess_parameter(self, param: ParameterWithPath):
-        if len(param.children) > 0 or dataclasses.is_dataclass(param.type):
+        if len(param.children) > 0 or (dataclasses.is_dataclass(param.type) and param.argument_type is None):
             return True, param.parameter
         if param.type is None:
             return True, None
@@ -98,15 +98,17 @@ class SimpleListHandler(Handler):
 @register_handler
 class FromStrHandler(Handler):
     def _does_handle(self, tp: Type):
+        if tp is None:
+            return False
         return hasattr(tp, 'from_str')
 
     def preprocess_parameter(self, parameter):
-        if self._does_handle(parameter.type):
+        if parameter is not None and self._does_handle(parameter.type):
             return True, parameter.replace(argument_type=str)
         return False, parameter
 
     def parse_value(self, parameter, value):
-        if self._does_handle(parameter.type) and isinstance(value, str):
+        if parameter is not None and self._does_handle(parameter.type) and isinstance(value, str):
             return True, parameter.type.from_str(value)
         return False, value
 
