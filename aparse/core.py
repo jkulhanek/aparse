@@ -95,6 +95,7 @@ class Parameter:
     choices: Optional[List[Any]] = None
     argument_type: Optional[Any] = None
     _argument_name: Optional[Tuple[str]] = None
+    is_container: Optional[bool] = None
 
     def walk(self, fn: Callable[['ParameterWithPath', List[Any]], Any], reverse: bool = False):
         def _walk(e, parent):

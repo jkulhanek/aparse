@@ -9,8 +9,9 @@ from .utils import prefix_parameter, merge_parameter_trees
 @register_handler
 class DefaultHandler(Handler):
     def preprocess_parameter(self, param: ParameterWithPath):
-        if len(param.children) > 0 or (dataclasses.is_dataclass(param.type) and param.argument_type is None):
-            return True, param.parameter
+        if (len(param.children) > 0 or dataclasses.is_dataclass(param.type)) \
+           and (param.parameter.is_container is None or param.parameter.is_container):
+            return True, dataclasses.replace(param.parameter, is_container=True)
         if param.type is None:
             return True, None
 

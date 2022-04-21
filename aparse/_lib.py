@@ -22,6 +22,9 @@ def preprocess_parameter(param: ParameterWithPath, children):
             handled, param = h.preprocess_parameter(param)
             if handled:
                 break
+    elif param.parameter.is_container is None:
+        param = dataclasses.replace(
+            param, parameter=dataclasses.replace(param.parameter, is_container=True))
     return param
 
 
@@ -147,7 +150,7 @@ def bind_parameters(parameters: Parameter, arguments: Dict[str, Any]):
         if was_handled:
             return parameter, value
 
-        if len(children) > 0 or parameter.name is None or dataclasses.is_dataclass(parameter.type):
+        if parameter.parameter.is_container:
             dict_vals = {p.name: x for p, x in children if p.name is not None and x != _empty}
             if parameter.type == dict:
                 value = dict_vals

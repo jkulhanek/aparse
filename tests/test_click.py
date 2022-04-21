@@ -4,7 +4,7 @@ from typing import List
 import click as _click
 from aparse import click, FunctionConditionalType
 from aparse import ConditionalType, Parameter, AllArguments, Literal, WithArgumentName
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 def test_click_all_arguments(monkeypatch):
@@ -603,6 +603,56 @@ def test_special_case_2(monkeypatch):
         assert k is not None
         assert k.c is not None
         assert isinstance(k.c, TestClass)
+
+    testfn()
+    assert was_called
+
+
+def test_special_case_3(monkeypatch):
+    @dataclass
+    class MaskStrategy:
+        @classmethod
+        def from_str(cls, value):
+            if cls == MaskStrategy:
+                # Root parser will find try all subclasses
+                def all_subclasses(cls):
+                    return set(cls.__subclasses__()).union(
+                        [s for c in cls.__subclasses__() for s in all_subclasses(c)])
+                for sub_cls in all_subclasses(cls):
+                    try:
+                        return sub_cls.from_str(value)
+                    except ValueError:
+                        pass
+                else:
+                    raise ValueError(f'Value {value} could not be parsed by any known parser')
+
+            if value != cls.__name__:
+                raise ValueError(f'Value {value} cannot be parsed as {cls.__name__} class')
+            return cls()
+
+    @dataclass
+    class BertMaskStrategy(MaskStrategy):
+        pass
+
+    @dataclass
+    class BertSubsequenceMaskStrategy(MaskStrategy):
+        mask_ratio: float = 0.15
+
+    @dataclass
+    class Config:
+        a: MaskStrategy = field(default_factory=BertMaskStrategy)
+
+    monkeypatch.setattr(sys, 'argv', ['prg.py', '--c-a', 'BertSubsequenceMaskStrategy'])
+    monkeypatch.setattr(sys, 'exit', lambda *args, **kwargs: None)
+    was_called = False
+
+    @click.command()
+    def testfn(c: Config):
+        nonlocal was_called
+        was_called = True
+        assert c is not None
+        assert c.a is not None
+        assert isinstance(c.a, BertSubsequenceMaskStrategy)
 
     testfn()
     assert was_called

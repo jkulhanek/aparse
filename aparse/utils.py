@@ -45,12 +45,12 @@ def prefix_parameter(parameter, prefix, container_type=None):
     parameter = copy.copy(parameter)
     has_container = True
     if parameter.name is not None:
-        root = Parameter(name=None, type=dict, children=[parameter])
+        root = Parameter(name=None, type=dict, children=[parameter], is_container=True)
         parameter = root
         has_container = False
 
     def prefix_single(x, name):
-        parent = Parameter(name=name, type=container_type)
+        parent = Parameter(name=name, type=container_type, is_container=True)
         parent.children = x.children
         x.children = [parent]
         return x
