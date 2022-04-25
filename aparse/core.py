@@ -36,8 +36,9 @@ _empty = object()
 
 
 class DefaultFactory:
-    def __init__(self, factory):
+    def __init__(self, factory, comp_value_fn=None):
         self.factory = factory
+        self._comp_value_fn = comp_value_fn
 
     def __repr__(self):
         return repr(self.factory())
@@ -50,11 +51,12 @@ class DefaultFactory:
 
     def __eq__(self, other):
         if not isinstance(other, DefaultFactory):
-            return False
+            return self._get_comp_value(self) == other
         return self._get_comp_value(self) == self._get_comp_value(other)
 
-    @staticmethod
-    def _get_comp_value(value):
+    def _get_comp_value(self, value):
+        if self._comp_value_fn is not None:
+            return self._comp_value_fn(value)
         if isinstance(value, DefaultFactory):
             value = value()
         if isinstance(value, (int, str, float, bool)):
@@ -62,10 +64,10 @@ class DefaultFactory:
         if value is None:
             return 'None'
         if isinstance(value, (list, tuple, set)):
-            return '[' + ', '.join(sorted(DefaultFactory._get_comp_value(x) for x in value)) + ']'
+            return '[' + ', '.join(sorted(self._get_comp_value(x) for x in value)) + ']'
         if isinstance(value, (dict, OrderedDict)):
-            return '{' + ', '.join(sorted(f'{k}:{DefaultFactory._get_comp_value(v)}' for k, v in value.items())) + '}'
-        return DefaultFactory._get_comp_value(vars(value))
+            return '{' + ', '.join(sorted(f'{k}:{self._get_comp_value(v)}' for k, v in value.items())) + '}'
+        return self._get_comp_value(vars(value))
 
     def __hash__(self):
         return hash(self._get_comp_value(self))

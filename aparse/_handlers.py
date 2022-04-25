@@ -105,7 +105,18 @@ class FromStrHandler(Handler):
 
     def preprocess_parameter(self, parameter):
         if parameter is not None and self._does_handle(parameter.type):
-            return True, parameter.replace(argument_type=str)
+            default_factory = parameter.default_factory
+            if default_factory is not None:
+                def comp_value_fn(value):
+                    if value is not None:
+                        value = str(value)
+                    return value
+                default_factory = DefaultFactory(
+                    default_factory.factory,
+                    comp_value_fn)
+            return True, parameter.replace(
+                argument_type=str,
+                default_factory=default_factory)
         return False, parameter
 
     def parse_value(self, parameter, value):
