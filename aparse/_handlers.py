@@ -107,13 +107,16 @@ class FromStrHandler(Handler):
         if parameter is not None and self._does_handle(parameter.type):
             default_factory = parameter.default_factory
             if default_factory is not None:
-                _old_default_factory = default_factory
-                def default_factory():
-                    val = _old_default_factory()
-                    if val is not None:
-                        val = str(val)
-                    return val
-            return True, parameter.replace(argument_type=str, default_factory=default_factory)
+                def comp_value_fn(value):
+                    if value is not None:
+                        value = str(value)
+                    return value
+                default_factory = DefaultFactory(
+                    default_factory.factory,
+                    comp_value_fn)
+            return True, parameter.replace(
+                argument_type=str,
+                default_factory=default_factory)
         return False, parameter
 
     def parse_value(self, parameter, value):
